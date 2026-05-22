@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🔍 Scanner Kehadiran - Apple Tree Gala Dinner</title>
+
+    <!-- QR Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+    <style>
+      :root {
+        --gold: #c9a84c;
+        --navy: #1b2a4a;
+        --navy-dark: #0f1a30;
+        --success: #22c55e;
+        --error: #ef4444;
+        --warning: #f59e0b;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Montserrat", sans-serif;
+        background: var(--navy-dark);
+        color: #fff;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 500px;
+        margin: 0 auto;
+      }
+
+      .header {
+        text-align: center;
+        padding: 20px 0;
+        border-bottom: 2px solid var(--gold);
+        margin-bottom: 20px;
+      }
+
+      .header h1 {
+        font-family: "Playfair Display", serif;
+        color: var(--gold);
+        font-size: 24px;
+      }
+
+      .header p {
+        font-size: 12px;
+        opacity: 0.7;
+        margin-top: 5px;
+      }
+
+      /* Scanner Area */
+      .scanner-box {
+        background: rgba(30, 45, 79, 0.9);
+        border: 2px solid var(--gold);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+
+      #reader {
+        width: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #000;
+      }
+
+      #reader video {
+        width: 100%;
+        border-radius: 8px;
+      }
+
+      .scanner-controls {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+      }
+
+      .btn {
+        flex: 1;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-primary {
+        background: var(--gold);
+        color: var(--navy-dark);
+      }
+
+      .btn-primary:hover {
+        background: #e8d48b;
+      }
+
+      .btn-danger {
+        background: var(--error);
+        color: white;
+      }
+
+      .btn-danger:hover {
+        background: #dc2626;
+      }
+
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      /* Result Display */
+      .result-box {
+        background: rgba(30, 45, 79, 0.9);
+        border: 2px solid var(--gold);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 20px;
+        min-height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+
+      .result-box.empty {
+        opacity: 0.5;
+        font-style: italic;
+      }
+
+      .result-success {
+        border-color: var(--success);
+        animation: pulse-success 0.5s;
+      }
+
+      .result-error {
+        border-color: var(--error);
+        animation: pulse-error 0.5s;
+      }
+
+      @keyframes pulse-success {
+        0% {
+          box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+        }
+        70% {
+          box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+        }
+      }
+
+      @keyframes pulse-error {
+        0% {
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+        }
+        70% {
+          box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        }
+      }
+
+      .guest-name {
+        font-family: "Playfair Display", serif;
+        font-size: 24px;
+        color: var(--gold);
+        margin: 10px 0;
+      }
+
+      .guest-seat {
+        font-size: 14px;
+        opacity: 0.8;
+      }
+
+      .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-top: 10px;
+      }
+
+      .status-valid {
+        background: var(--success);
+        color: white;
+      }
+      .status-invalid {
+        background: var(--error);
+        color: white;
+      }
+      .status-duplicate {
+        background: var(--warning);
+        color: var(--navy-dark);
+      }
+
+      /* Stats */
+      .stats-box {
+        background: rgba(30, 45, 79, 0.9);
+        border: 1px solid rgba(201, 168, 76, 0.3);
+        border-radius: 12px;
+        padding: 15px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        text-align: center;
+      }
+
+      .stat-item .value {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--gold);
+      }
+
+      .stat-item .label {
+        font-size: 10px;
+        opacity: 0.7;
+        text-transform: uppercase;
+      }
+
+      /* Loading */
+      .loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        color: var(--gold);
+      }
+
+      .spinner {
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(201, 168, 76, 0.3);
+        border-top-color: var(--gold);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Responsive */
+      @media (max-width: 480px) {
+        .scanner-box,
+        .result-box,
+        .stats-box {
+          padding: 15px;
+        }
+        .header h1 {
+          font-size: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <h1>🔍 Scanner Kehadiran</h1>
+        <p>Apple Tree Pre School Kupang — Gala Dinner 2026</p>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-box" id="stats-box">
+        <div class="stat-item">
+          <div class="value" id="stat-total">-</div>
+          <div class="label">Total Tamu</div>
+        </div>
+        <div class="stat-item">
+          <div class="value" id="stat-checked" style="color: #22c55e">-</div>
+          <div class="label">Sudah Hadir</div>
+        </div>
+        <div class="stat-item">
+          <div class="value" id="stat-remaining">-</div>
+          <div class="label">Menunggu</div>
+        </div>
+      </div>
+
+      <!-- Scanner -->
+      <div class="scanner-box">
+        <div id="reader"></div>
+        <div class="scanner-controls">
+          <button
+            class="btn btn-primary"
+            id="btn-start"
+            onclick="startScanner()"
+          >
+            🎥 Mulai Scan
+          </button>
+          <button
+            class="btn btn-danger"
+            id="btn-stop"
+            onclick="stopScanner()"
+            disabled
+          >
+            ⏹ Stop
+          </button>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div class="result-box empty" id="result-box">
+        <span>Scan QR Code undangan tamu untuk validasi kehadiran</span>
+      </div>
+
+      <!-- Manual Input (Fallback) -->
+      <div class="scanner-box">
+        <p style="font-size: 12px; margin-bottom: 10px; opacity: 0.7">
+          💡 Tidak bisa scan? Input manual:
+        </p>
+        <div style="display: flex; gap: 10px">
+          <input
+            type="text"
+            id="manual-seat"
+            placeholder="seat (contoh: marthynz)"
+            style="
+              flex: 1;
+              padding: 10px;
+              border: 1px solid var(--gold);
+              border-radius: 6px;
+              background: rgba(255, 255, 255, 0.1);
+              color: #fff;
+            "
+          />
+          <button class="btn btn-primary" onclick="validateManual()">
+            ✓ Cek
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ⚠️ Ganti dengan Web App URL Google Apps Script Anda
+      const API_URL = "https://script.google.com/macros/s/.../exec";
+
+      let html5QrCode = null;
+      let isScanning = false;
+
+      // Initialize stats on load
+      document.addEventListener("DOMContentLoaded", function () {
+        loadStats();
+        // Auto-start scanner jika device mendukung
+        // startScanner();
+      });
+
+      // Start QR Scanner
+      async function startScanner() {
+        if (isScanning) return;
+
+        try {
+          html5QrCode = new Html5Qrcode("reader");
+
+          await html5QrCode.start(
+            { facingMode: "environment" }, // Use back camera
+            {
+              fps: 10,
+              qrbox: { width: 250, height: 250 },
+            },
+            onScanSuccess,
+            onScanFailure,
+          );
+
+          isScanning = true;
+          document.getElementById("btn-start").disabled = true;
+          document.getElementById("btn-stop").disabled = false;
+          showResult("🎯 Memindai QR Code...", "loading");
+        } catch (err) {
+          console.error("Scanner error:", err);
+          showResult(
+            "❌ Gagal mengakses kamera. Pastikan izin kamera diaktifkan.",
+            "error",
+          );
+        }
+      }
+
+      // Stop QR Scanner
+      function stopScanner() {
+        if (html5QrCode && isScanning) {
+          html5QrCode
+            .stop()
+            .then(() => {
+              isScanning = false;
+              document.getElementById("btn-start").disabled = false;
+              document.getElementById("btn-stop").disabled = true;
+              html5QrCode.clear();
+            })
+            .catch((err) => console.error("Stop error:", err));
+        }
+      }
+
+      // Handle successful scan
+      async function onScanSuccess(decodedText) {
+        // Pause scanning temporarily
+        if (html5QrCode) html5QrCode.pause();
+
+        showResult(
+          '<div class="loading"><div class="spinner"></div> Memvalidasi...</div>',
+          "loading",
+        );
+
+        try {
+          // Parse QR data (expecting JSON string)
+          let qrData;
+          try {
+            qrData = JSON.parse(decodedText);
+          } catch (e) {
+            // Fallback: if QR contains plain URL
+            const url = new URL(
+              decodedText.includes("http")
+                ? decodedText
+                : CONFIG.inviteBaseUrl + decodedText,
+            );
+            qrData = {
+              seat: url.searchParams.get("seat"),
+              token: url.searchParams.get("token"),
+            };
+          }
+
+          if (!qrData.seat || !qrData.token) {
+            throw new Error("Invalid QR format");
+          }
+
+          // Call validation API
+          const response = await fetch(
+            `${API_URL}?action=validate&seat=${encodeURIComponent(qrData.seat)}&token=${encodeURIComponent(qrData.token)}&origin=${window.location.origin}`,
+            {
+              method: "GET",
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+
+          const result = await response.json();
+
+          if (result.success) {
+            showResult(
+              `
+            <div style="color:#22c55e; font-size:40px; margin-bottom:10px">✅</div>
+            <div class="guest-name">${result.guest.name}</div>
+            <div class="guest-seat">Seat: ${result.guest.seat}</div>
+            <span class="status-badge status-valid">✓ Kehadiran Dikonfirmasi</span>
+            <div style="margin-top:10px; font-size:12px; opacity:0.7">
+              🕐 ${new Date().toLocaleTimeString("id-ID")}
+            </div>
+          `,
+              "success",
+            );
+
+            // Play success sound (optional)
+            playSound("success");
+
+            // Refresh stats
+            loadStats();
+          } else if (result.message === "Already checked in") {
+            showResult(
+              `
+            <div style="color:#f59e0b; font-size:40px; margin-bottom:10px">⚠️</div>
+            <div class="guest-name">${result.guest.name}</div>
+            <div class="guest-seat">Seat: ${result.guest.seat}</div>
+            <span class="status-badge status-duplicate">Sudah Check-in</span>
+            <div style="margin-top:10px; font-size:11px; opacity:0.7">
+              🕐 ${result.guest.checkedAt ? new Date(result.guest.checkedAt).toLocaleString("id-ID") : "-"}
+            </div>
+          `,
+              "warning",
+            );
+
+            playSound("warning");
+          } else {
+            showResult(
+              `
+            <div style="color:#ef4444; font-size:40px; margin-bottom:10px">❌</div>
+            <div style="font-weight:600; margin:10px 0">Tidak Valid</div>
+            <span class="status-badge status-invalid">${result.message}</span>
+            <div style="margin-top:10px; font-size:11px; opacity:0.7">
+              Seat: ${qrData.seat}
+            </div>
+          `,
+              "error",
+            );
+
+            playSound("error");
+          }
+        } catch (error) {
+          console.error("Validation error:", error);
+          showResult(
+            `
+          <div style="color:#ef4444; font-size:40px">❌</div>
+          <div style="margin:10px 0">Gagal validasi</div>
+          <span class="status-badge status-invalid">Cek koneksi internet</span>
+        `,
+            "error",
+          );
+        }
+
+        // Resume scanning after 3 seconds
+        setTimeout(() => {
+          if (html5QrCode && isScanning) {
+            html5QrCode.resume();
+          }
+        }, 3000);
+      }
+
+      // Handle scan failure
+      function onScanFailure(message) {
+        // Don't show every failure to avoid spam
+        // console.warn('Scan failure:', message);
+      }
+
+      // Manual validation fallback
+      async function validateManual() {
+        const seat = document.getElementById("manual-seat").value.trim();
+        if (!seat) {
+          showResult("⚠️ Masukkan seat terlebih dahulu", "error");
+          return;
+        }
+
+        // For manual input, we need token - in production, staff should have a lookup table
+        // This is just a demo - in real use, manual validation should require additional auth
+        const token = prompt("Masukkan token untuk " + seat + ":");
+        if (!token) return;
+
+        showResult(
+          '<div class="loading"><div class="spinner"></div> Memvalidasi...</div>',
+          "loading",
+        );
+
+        try {
+          const response = await fetch(
+            `${API_URL}?action=validate&seat=${encodeURIComponent(seat)}&token=${encodeURIComponent(token)}&origin=${window.location.origin}`,
+          );
+          const result = await response.json();
+
+          if (result.success) {
+            showResult(
+              `✅ ${result.guest.name} (${seat}) - Kehadiran Dikonfirmasi`,
+              "success",
+            );
+            loadStats();
+          } else {
+            showResult(`❌ ${result.message}`, "error");
+          }
+        } catch (e) {
+          showResult("❌ Gagal terhubung ke server", "error");
+        }
+      }
+
+      // Display result in UI
+      function showResult(html, type) {
+        const box = document.getElementById("result-box");
+        box.className = "result-box";
+        if (type === "success") box.classList.add("result-success");
+        if (type === "error") box.classList.add("result-error");
+        if (type === "loading" || type === "empty") box.classList.add("empty");
+        box.innerHTML = html;
+      }
+
+      // Load attendance stats
+      async function loadStats() {
+        try {
+          const response = await fetch(
+            `${API_URL}?action=stats&origin=${window.location.origin}`,
+          );
+          const data = await response.json();
+
+          if (data.success && data.stats) {
+            document.getElementById("stat-total").textContent =
+              data.stats.total;
+            document.getElementById("stat-checked").textContent =
+              data.stats.checkedIn;
+            document.getElementById("stat-remaining").textContent =
+              data.stats.remaining;
+          }
+        } catch (e) {
+          console.warn("Failed to load stats:", e);
+        }
+      }
+
+      // Simple sound feedback (optional)
+      function playSound(type) {
+        // Requires user interaction first due to browser policies
+        // You can add actual audio files here if needed
+        console.log(`🔊 Sound: ${type}`);
+      }
+
+      // Cleanup on page unload
+      window.addEventListener("beforeunload", function () {
+        if (html5QrCode && isScanning) {
+          html5QrCode.stop();
+        }
+      });
+    </script>
+  </body>
+</html>
