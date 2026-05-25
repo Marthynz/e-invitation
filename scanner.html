@@ -410,88 +410,29 @@
 
       document.addEventListener("DOMContentLoaded", async function () {
         console.log("🚀 Scanner initialized");
-        console.log("📡 API URL:", API_URL);
-
-        // Test dengan cara yang berbeda
         await testAPIConnection();
         await loadStats();
       });
 
-      // Fungsi fetch dengan retry dan timeout
-      async function fetchWithTimeout(url, options = {}, timeout = 10000) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-        try {
-          const response = await fetch(url, {
-            ...options,
-            signal: controller.signal,
-            mode: "no-cors", // Gunakan no-cors untuk Google Apps Script
-            cache: "no-store",
-          });
-
-          clearTimeout(timeoutId);
-          return response;
-        } catch (error) {
-          clearTimeout(timeoutId);
-          throw error;
-        }
-      }
-
       async function testAPIConnection() {
         try {
-          console.log("🔌 Testing API...");
+          const response = await fetch(API_URL + "?action=test");
+          const data = await response.json();
 
-          // Test dengan iframe approach untuk bypass CORS
-          const testUrl = API_URL + "?action=test&t=" + Date.now();
-
-          // Coba fetch biasa dulu
-          try {
-            const response = await fetch(testUrl, {
-              method: "GET",
-              mode: "cors",
-              cache: "no-cache",
-            });
-
-            if (response.ok) {
-              const data = await response.json();
-              console.log("✅ API Test:", data);
-              showResult(
-                "✅ <strong>API Connected!</strong><br>Ready to scan.",
-                "success",
-              );
-              setTimeout(
-                () => showResult("📷 Arahkan kamera ke QR Code", "empty"),
-                3000,
-              );
-              return;
-            }
-          } catch (fetchError) {
-            console.log("Fetch failed, trying alternative method...");
+          if (data.success) {
+            showResult(
+              "✅ <strong>API Connected!</strong><br>Ready to scan QR codes.",
+              "success",
+            );
+            setTimeout(
+              () => showResult("📷 Arahkan kamera ke QR Code", "empty"),
+              3000,
+            );
+          } else {
+            showResult("⚠️ API: " + data.message, "warning");
           }
-
-          // Fallback: Anggap API OK jika URL valid
-          console.log("⚠️ Using fallback validation");
-          showResult(
-            "⚠️ <strong>CORS Warning</strong><br>" +
-              "API URL valid. Scanner akan tetap berfungsi.<br>" +
-              "Jika scan gagal, gunakan input manual.",
-            "warning",
-          );
-
-          setTimeout(
-            () => showResult("📷 Arahkan kamera ke QR Code", "empty"),
-            3000,
-          );
         } catch (error) {
-          console.error("❌ API Error:", error);
-          showResult(
-            `⚠️ <strong>Connection Warning</strong><br>
-        <small>${error.message}</small><br><br>
-        Scanner tetap bisa digunakan.<br>
-        Jika QR scan gagal, gunakan input manual di bawah.`,
-            "warning",
-          );
+          showResult("❌ API Error: " + error.message, "error");
         }
       }
 
@@ -499,28 +440,19 @@
         if (isScanning) return;
 
         try {
-          console.log("🎥 Starting scanner...");
           html5QrCode = new Html5Qrcode("reader");
-
           await html5QrCode.start(
             { facingMode: "environment" },
-            {
-              fps: 10,
-              qrbox: { width: 250, height: 250 },
-              aspectRatio: 1.0,
-            },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
             onScanSuccess,
             onScanFailure,
           );
 
           isScanning = true;
-          scanPaused = false;
           document.getElementById("btn-start").disabled = true;
           document.getElementById("btn-stop").disabled = false;
-          console.log("✅ Scanner started");
         } catch (err) {
-          console.error("❌ Scanner error:", err);
-          alert(`❌ Gagal: ${err.message}`);
+          alert("Error: " + err.message);
         }
       }
 
@@ -528,11 +460,8 @@
         if (html5QrCode && isScanning) {
           html5QrCode.stop().then(() => {
             isScanning = false;
-            scanPaused = false;
             document.getElementById("btn-start").disabled = false;
             document.getElementById("btn-stop").disabled = true;
-            html5QrCode.clear();
-            console.log("⏹ Stopped");
           });
         }
       }
@@ -554,120 +483,63 @@
 
         try {
           const qrData = parseQRData(decodedText);
-          console.log("📦 QR Data:", qrData);
 
           if (!qrData.seat || !qrData.token) {
-            throw new Error("Invalid QR: missing seat/token");
+            throw new Error("Invalid QR Code");
           }
 
-          // Call API dengan mode no-cors
-          const validateUrl = `${API_URL}?action=validate&seat=${encodeURIComponent(qrData.seat)}&token=${encodeURIComponent(qrData.token)}`;
+          const url =
+            API_URL +
+            "?action=validate&seat=" +
+            encodeURIComponent(qrData.seat) +
+            "&token=" +
+            encodeURIComponent(qrData.token);
+          const response = await fetch(url);
+          const result = await response.json();
 
-          console.log("📡 Calling:", validateUrl);
-
-          try {
-            const response = await fetch(validateUrl, {
-              method: "GET",
-              mode: "no-cors", // Penting untuk Google Apps Script
-              cache: "no-cache",
-            });
-
-            // Dengan no-cors, kita tidak bisa baca response
-            // Jadi kita asumsikan sukses dan tampilkan info tamu
-            console.log("✅ Request sent (no-cors mode)");
-
-            // Tampilkan info dari QR
+          if (result.success) {
             showResult(
               `
           <div style="color:#22c55e; font-size:48px; margin-bottom:10px">✅</div>
-          <div style="font-size:18px; margin-bottom:5px">QR Valid</div>
-          <div style="font-size:14px; opacity:0.8">Seat: <strong>${qrData.seat}</strong></div>
-          <div style="font-size:12px; opacity:0.6; margin-top:10px">
-            Check-in berhasil!<br>
-            Data tersimpan di Google Sheet
-          </div>
+          <div style="font-size:20px; margin-bottom:5px">${result.guest.name}</div>
+          <div style="font-size:14px; opacity:0.8">Seat: ${result.guest.seat}</div>
+          <span style="display:inline-block; padding:6px 16px; background:#22c55e; color:white; border-radius:20px; margin-top:10px; font-size:12px">
+            ${result.duplicate ? "Sudah Check-in" : "Check-in Berhasil"}
+          </span>
         `,
-              "success",
+              result.duplicate ? "warning" : "success",
             );
 
-            // Refresh stats
-            setTimeout(() => loadStats(), 1000);
-          } catch (fetchError) {
-            console.error("Fetch error:", fetchError);
-            throw new Error("Gagal menghubungi server");
+            if (!result.duplicate) loadStats();
+          } else {
+            showResult(`❌ ${result.message}`, "error");
           }
         } catch (error) {
-          console.error("❌ Error:", error);
-          showResult(
-            `❌ <strong>Error</strong><br>
-        <small>${error.message}</small>`,
-            "error",
-          );
+          showResult("❌ Error: " + error.message, "error");
         }
 
-        setTimeout(resumeScanning, 4000);
+        setTimeout(() => {
+          scanPaused = false;
+          if (html5QrCode && isScanning) {
+            html5QrCode.resume().catch(() => {});
+          }
+        }, 4000);
       }
 
       function parseQRData(text) {
         try {
-          // Coba JSON
           const json = JSON.parse(text);
           return { seat: json.seat, token: json.token };
         } catch (e) {
-          // Parse URL
-          let urlStr = text;
-          if (!urlStr.startsWith("http")) {
-            urlStr = CONFIG.inviteBaseUrl + "?" + urlStr;
-          }
-
-          try {
-            const url = new URL(urlStr);
-            return {
-              seat: url.searchParams.get("seat"),
-              token: url.searchParams.get("token"),
-              raw: text,
-            };
-          } catch (e2) {
-            return { raw: text };
-          }
-        }
-      }
-
-      function displayValidationResult(result, qrData) {
-        if (result.success) {
-          showResult(
-            `
-        <div style="color:#22c55e; font-size:48px">✅</div>
-        <div style="font-size:20px; margin:10px 0">${result.guest?.name || "Guest"}</div>
-        <div style="font-size:14px">Seat: ${qrData.seat}</div>
-        <span style="display:inline-block; padding:6px 16px; background:#22c55e; color:white; border-radius:20px; margin-top:10px; font-size:12px">
-          ${result.duplicate ? "Sudah Check-in" : "Check-in Berhasil"}
-        </span>
-      `,
-            result.duplicate ? "warning" : "success",
-          );
-        } else {
-          showResult(
-            `
-        <div style="color:#ef4444; font-size:48px">❌</div>
-        <div style="margin:10px 0">${result.message}</div>
-      `,
-            "error",
-          );
-        }
-      }
-
-      function resumeScanning() {
-        if (html5QrCode && isScanning) {
-          html5QrCode
-            .resume()
-            .then(() => {
-              scanPaused = false;
-            })
-            .catch(() => {
-              stopScanner();
-              setTimeout(startScanner, 1000);
-            });
+          let urlStr = text.startsWith("http")
+            ? text
+            : CONFIG.inviteBaseUrl + "?" + text;
+          const url = new URL(urlStr);
+          return {
+            seat: url.searchParams.get("seat"),
+            token: url.searchParams.get("token"),
+            raw: text,
+          };
         }
       }
 
@@ -688,26 +560,23 @@
         );
 
         try {
-          const url = `${API_URL}?action=validate&seat=${encodeURIComponent(seat)}&token=${encodeURIComponent(token)}`;
+          const url =
+            API_URL +
+            "?action=validate&seat=" +
+            encodeURIComponent(seat) +
+            "&token=" +
+            encodeURIComponent(token);
+          const response = await fetch(url);
+          const result = await response.json();
 
-          await fetch(url, {
-            method: "GET",
-            mode: "no-cors",
-            cache: "no-cache",
-          });
-
-          showResult(
-            `
-        <div style="color:#22c55e; font-size:48px">✅</div>
-        <div>Check-in berhasil!</div>
-        <div style="font-size:12px; margin-top:10px">Seat: ${seat}</div>
-      `,
-            "success",
-          );
-
-          loadStats();
+          if (result.success) {
+            showResult(`✅ Check-in berhasil!<br>Seat: ${seat}`, "success");
+            loadStats();
+          } else {
+            showResult(`❌ ${result.message}`, "error");
+          }
         } catch (e) {
-          alert("Error: " + e.message);
+          showResult("❌ Error: " + e.message, "error");
         }
       }
 
@@ -725,29 +594,19 @@
 
       async function loadStats() {
         try {
-          // Stats juga pakai no-cors
-          const response = await fetch(API_URL + "?action=stats", {
-            mode: "no-cors",
-            cache: "no-cache",
-          });
+          const response = await fetch(API_URL + "?action=stats");
+          const data = await response.json();
 
-          // Tidak bisa baca response dengan no-cors
-          console.log("Stats requested");
+          if (data.success && data.stats) {
+            document.getElementById("stat-total").textContent =
+              data.stats.total;
+            document.getElementById("stat-checked").textContent =
+              data.stats.checkedIn;
+            document.getElementById("stat-remaining").textContent =
+              data.stats.remaining;
+          }
         } catch (e) {
           console.log("Stats error:", e);
-        }
-      }
-
-      function escapeHtml(text) {
-        if (!text) return "";
-        const div = document.createElement("div");
-        div.textContent = text;
-        return div.innerHTML;
-      }
-
-      function log(...args) {
-        if (CONFIG.debugMode) {
-          console.log("[Scanner]", ...args);
         }
       }
 
