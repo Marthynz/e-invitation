@@ -342,44 +342,91 @@
     </div>
 
     <script>
-      // ⚠️ Ganti dengan Web App URL Google Apps Script Anda
-      const API_URL = "https://script.google.com/macros/s/AKfycbytboVxwx0mmc7PsJEy6eu0ijwUfaJqHnpx9kNwhKW-49L9eNLLsyRkdBnQAJfbGjMhxw/exec";
+      // ⚠️ GANTI DENGAN URL WEB APP ANDA
+      const API_URL =
+        "https://script.google.com/macros/s/AKfycbytboVxwx0mmc7PsJEy6eu0ijwUfaJqHnpx9kNwhKW-49L9eNLLsyRkdBnQAJfbGjMhxw/exec";
+
+      // Konfigurasi
+      const CONFIG = {
+        inviteBaseUrl: "https://marthynz.github.io/e-invitation?",
+        debugMode: true, // Set false di production
+      };
 
       let html5QrCode = null;
       let isScanning = false;
+      let scanPaused = false;
 
-      // Initialize stats on load
-      document.addEventListener("DOMContentLoaded", function () {
-        loadStats();
-        // Auto-start scanner jika device mendukung
-        // startScanner();
+      // Test koneksi API saat load
+      document.addEventListener("DOMContentLoaded", async function () {
+        log("Scanner initialized");
+        await testAPIConnection();
+        await loadStats();
       });
+
+      // Test koneksi ke API
+      async function testAPIConnection() {
+        try {
+          log("Testing API connection...");
+          const response = await fetch(
+            `${API_URL}?action=test&origin=${window.location.origin}`,
+            {
+              method: "GET",
+              mode: "cors",
+            },
+          );
+
+          const data = await response.json();
+          log("API Test Result:", data);
+
+          if (data.success || data.status === "ok") {
+            showResult("✅ API Connected! Ready to scan.", "success");
+          } else {
+            showResult(
+              "⚠️ API connected but returned: " + JSON.stringify(data),
+              "warning",
+            );
+          }
+        } catch (error) {
+          log("API Connection Error:", error);
+          showResult(
+            `❌ Cannot connect to API<br><small>${error.message}</small><br><br>Check:<br>1. API URL is correct<br>2. Web App is deployed<br>3. CORS is enabled`,
+            "error",
+          );
+        }
+      }
 
       // Start QR Scanner
       async function startScanner() {
         if (isScanning) return;
 
         try {
+          log("Starting scanner...");
           html5QrCode = new Html5Qrcode("reader");
 
+          const devices = await Html5Qrcode.getCameras();
+          log("Available cameras:", devices);
+
           await html5QrCode.start(
-            { facingMode: "environment" }, // Use back camera
+            { facingMode: "environment" },
             {
               fps: 10,
               qrbox: { width: 250, height: 250 },
+              aspectRatio: 1.0,
+              disableFlip: false,
             },
             onScanSuccess,
             onScanFailure,
           );
 
           isScanning = true;
+          scanPaused = false;
           document.getElementById("btn-start").disabled = true;
           document.getElementById("btn-stop").disabled = false;
-          showResult("🎯 Memindai QR Code...", "loading");
+          log("Scanner started successfully");
         } catch (err) {
-          console.error("Scanner error:", err);
+          log("Scanner error:", err);
           showResult(
-            "❌ Gagal mengakses kamera. Pastikan izin kamera diaktifkan.",
+            `❌ Gagal mengakses kamera<br><small>${err.message}</small><br><br>Pastikan:<br>1. Izin kamera diberikan<br>2. Menggunakan HTTPS<br>3. Browser mendukung`,
             "error",
           );
         }
@@ -392,133 +439,187 @@
             .stop()
             .then(() => {
               isScanning = false;
+              scanPaused = false;
               document.getElementById("btn-start").disabled = false;
               document.getElementById("btn-stop").disabled = true;
               html5QrCode.clear();
+              log("Scanner stopped");
             })
-            .catch((err) => console.error("Stop error:", err));
+            .catch((err) => {
+              log("Stop error:", err);
+            });
         }
       }
 
       // Handle successful scan
       async function onScanSuccess(decodedText) {
-        // Pause scanning temporarily
-        if (html5QrCode) html5QrCode.pause();
+        if (scanPaused) return;
 
+        // Pause scanning
+        scanPaused = true;
+        if (html5QrCode) {
+          try {
+            await html5QrCode.pause();
+          } catch (e) {
+            log("Pause error:", e);
+          }
+        }
+
+        log("QR Scanned:", decodedText);
         showResult(
-          '<div class="loading"><div class="spinner"></div> Memvalidasi...</div>',
+          '<div class="loading"><div class="spinner"></div> Memvalidasi QR Code...</div>',
           "loading",
         );
 
         try {
-          // Parse QR data (expecting JSON string)
-          let qrData;
-          try {
-            qrData = JSON.parse(decodedText);
-          } catch (e) {
-            // Fallback: if QR contains plain URL
-            const url = new URL(
-              decodedText.includes("http")
-                ? decodedText
-                : CONFIG.inviteBaseUrl + decodedText,
-            );
-            qrData = {
-              seat: url.searchParams.get("seat"),
-              token: url.searchParams.get("token"),
-            };
-          }
+          // Parse QR data
+          let qrData = parseQRData(decodedText);
+          log("Parsed QR Data:", qrData);
 
           if (!qrData.seat || !qrData.token) {
-            throw new Error("Invalid QR format");
+            throw new Error(
+              `Invalid QR format. Missing: ${!qrData.seat ? "seat" : "token"}`,
+            );
           }
 
           // Call validation API
-          const response = await fetch(
-            `${API_URL}?action=validate&seat=${encodeURIComponent(qrData.seat)}&token=${encodeURIComponent(qrData.token)}&origin=${window.location.origin}`,
-            {
-              method: "GET",
-              headers: { "Content-Type": "application/json" },
+          const validateUrl = `${API_URL}?action=validate&seat=${encodeURIComponent(qrData.seat)}&token=${encodeURIComponent(qrData.token)}&origin=${window.location.origin}`;
+
+          log("Calling API:", validateUrl);
+
+          const response = await fetch(validateUrl, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
             },
-          );
+            mode: "cors",
+            credentials: "omit",
+          });
+
+          log("Response status:", response.status);
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
 
           const result = await response.json();
+          log("API Response:", result);
 
-          if (result.success) {
-            showResult(
-              `
-            <div style="color:#22c55e; font-size:40px; margin-bottom:10px">✅</div>
-            <div class="guest-name">${result.guest.name}</div>
-            <div class="guest-seat">Seat: ${result.guest.seat}</div>
-            <span class="status-badge status-valid">✓ Kehadiran Dikonfirmasi</span>
-            <div style="margin-top:10px; font-size:12px; opacity:0.7">
-              🕐 ${new Date().toLocaleTimeString("id-ID")}
-            </div>
-          `,
-              "success",
-            );
-
-            // Play success sound (optional)
-            playSound("success");
-
-            // Refresh stats
-            loadStats();
-          } else if (result.message === "Already checked in") {
-            showResult(
-              `
-            <div style="color:#f59e0b; font-size:40px; margin-bottom:10px">⚠️</div>
-            <div class="guest-name">${result.guest.name}</div>
-            <div class="guest-seat">Seat: ${result.guest.seat}</div>
-            <span class="status-badge status-duplicate">Sudah Check-in</span>
-            <div style="margin-top:10px; font-size:11px; opacity:0.7">
-              🕐 ${result.guest.checkedAt ? new Date(result.guest.checkedAt).toLocaleString("id-ID") : "-"}
-            </div>
-          `,
-              "warning",
-            );
-
-            playSound("warning");
-          } else {
-            showResult(
-              `
-            <div style="color:#ef4444; font-size:40px; margin-bottom:10px">❌</div>
-            <div style="font-weight:600; margin:10px 0">Tidak Valid</div>
-            <span class="status-badge status-invalid">${result.message}</span>
-            <div style="margin-top:10px; font-size:11px; opacity:0.7">
-              Seat: ${qrData.seat}
-            </div>
-          `,
-              "error",
-            );
-
-            playSound("error");
-          }
+          displayValidationResult(result, qrData);
         } catch (error) {
-          console.error("Validation error:", error);
+          log("Validation error:", error);
           showResult(
-            `
-          <div style="color:#ef4444; font-size:40px">❌</div>
-          <div style="margin:10px 0">Gagal validasi</div>
-          <span class="status-badge status-invalid">Cek koneksi internet</span>
-        `,
+            `❌ Gagal validasi<br><small>${error.message}</small><br><br>Check console untuk detail`,
             "error",
           );
         }
 
-        // Resume scanning after 3 seconds
+        // Resume scanning after delay
         setTimeout(() => {
-          if (html5QrCode && isScanning) {
-            html5QrCode.resume();
+          resumeScanning();
+        }, 4000);
+      }
+
+      function parseQRData(decodedText) {
+        try {
+          // Coba parse sebagai JSON
+          return JSON.parse(decodedText);
+        } catch (e) {
+          // Jika bukan JSON, coba parse sebagai URL
+          try {
+            let urlStr = decodedText;
+            if (!urlStr.includes("http")) {
+              urlStr = CONFIG.inviteBaseUrl + urlStr;
+            }
+
+            const url = new URL(urlStr);
+            return {
+              seat: url.searchParams.get("seat"),
+              token: url.searchParams.get("token"),
+              raw: decodedText,
+            };
+          } catch (e2) {
+            log("Parse error:", e2);
+            return { raw: decodedText };
           }
-        }, 3000);
+        }
+      }
+
+      function displayValidationResult(result, qrData) {
+        if (result.success) {
+          showResult(
+            `
+        <div style="color:#22c55e; font-size:50px; margin-bottom:10px">✅</div>
+        <div class="guest-name">${result.guest.name || "Unknown"}</div>
+        <div class="guest-seat">Seat: ${result.guest.seat || qrData.seat}</div>
+        <span class="status-badge status-valid">✓ Kehadiran Dikonfirmasi</span>
+        <div style="margin-top:15px; font-size:12px; opacity:0.7">
+          🕐 ${new Date().toLocaleString("id-ID")}
+        </div>
+        `,
+            "success",
+          );
+          playSound("success");
+          loadStats(); // Refresh stats
+        } else if (
+          result.duplicate ||
+          result.message === "Already checked in"
+        ) {
+          showResult(
+            `
+        <div style="color:#f59e0b; font-size:50px; margin-bottom:10px">⚠️</div>
+        <div class="guest-name">${result.guest?.name || "Unknown"}</div>
+        <div class="guest-seat">Seat: ${result.guest?.seat || qrData.seat}</div>
+        <span class="status-badge status-duplicate">Sudah Check-in</span>
+        <div style="margin-top:15px; font-size:11px; opacity:0.7">
+          🕐 ${result.guest?.checkedAt ? new Date(result.guest.checkedAt).toLocaleString("id-ID") : "-"}
+        </div>
+        `,
+            "warning",
+          );
+          playSound("warning");
+        } else {
+          showResult(
+            `
+        <div style="color:#ef4444; font-size:50px; margin-bottom:10px">❌</div>
+        <div style="font-weight:600; margin:10px 0; font-size:18px">Tidak Valid</div>
+        <span class="status-badge status-invalid">${result.message || result.error || "Unknown error"}</span>
+        <div style="margin-top:15px; font-size:11px; opacity:0.7; max-width:300px; word-break:break-all">
+          Seat: ${qrData.seat}<br>
+          ${result.searched ? "Token: " + qrData.token : ""}
+        </div>
+        `,
+            "error",
+          );
+          playSound("error");
+        }
+      }
+
+      function resumeScanning() {
+        if (html5QrCode && isScanning) {
+          html5QrCode
+            .resume()
+            .then(() => {
+              scanPaused = false;
+              log("Scanner resumed");
+            })
+            .catch((err) => {
+              log("Resume error:", err);
+              // Restart scanner jika resume gagal
+              stopScanner();
+              setTimeout(() => startScanner(), 1000);
+            });
+        }
       }
 
       // Handle scan failure
       function onScanFailure(message) {
-        // Don't show every failure to avoid spam
-        // console.warn('Scan failure:', message);
+        // Don't log every failure to avoid spam
+        // log('Scan failure:', message);
       }
 
-      // Manual validation fallback
+      // Manual validation
       async function validateManual() {
         const seat = document.getElementById("manual-seat").value.trim();
         if (!seat) {
@@ -526,8 +627,6 @@
           return;
         }
 
-        // For manual input, we need token - in production, staff should have a lookup table
-        // This is just a demo - in real use, manual validation should require additional auth
         const token = prompt("Masukkan token untuk " + seat + ":");
         if (!token) return;
 
@@ -539,40 +638,59 @@
         try {
           const response = await fetch(
             `${API_URL}?action=validate&seat=${encodeURIComponent(seat)}&token=${encodeURIComponent(token)}&origin=${window.location.origin}`,
+            {
+              method: "GET",
+              headers: { "Content-Type": "application/json" },
+              mode: "cors",
+            },
           );
+
           const result = await response.json();
+          displayValidationResult(result, { seat, token });
 
           if (result.success) {
-            showResult(
-              `✅ ${result.guest.name} (${seat}) - Kehadiran Dikonfirmasi`,
-              "success",
-            );
             loadStats();
-          } else {
-            showResult(`❌ ${result.message}`, "error");
           }
         } catch (e) {
-          showResult("❌ Gagal terhubung ke server", "error");
+          log("Manual validation error:", e);
+          showResult(
+            "❌ Gagal terhubung ke server<br><small>" + e.message + "</small>",
+            "error",
+          );
         }
       }
 
-      // Display result in UI
+      // Display result
       function showResult(html, type) {
         const box = document.getElementById("result-box");
         box.className = "result-box";
-        if (type === "success") box.classList.add("result-success");
-        if (type === "error") box.classList.add("result-error");
-        if (type === "loading" || type === "empty") box.classList.add("empty");
+
+        if (type === "success") {
+          box.classList.add("result-success");
+        } else if (type === "error") {
+          box.classList.add("result-error");
+        } else if (type === "warning") {
+          box.style.borderColor = "var(--warning)";
+        } else if (type === "loading" || type === "empty") {
+          box.classList.add("empty");
+        }
+
         box.innerHTML = html;
       }
 
-      // Load attendance stats
+      // Load stats
       async function loadStats() {
         try {
           const response = await fetch(
             `${API_URL}?action=stats&origin=${window.location.origin}`,
+            {
+              method: "GET",
+              mode: "cors",
+            },
           );
+
           const data = await response.json();
+          log("Stats loaded:", data);
 
           if (data.success && data.stats) {
             document.getElementById("stat-total").textContent =
@@ -581,25 +699,40 @@
               data.stats.checkedIn;
             document.getElementById("stat-remaining").textContent =
               data.stats.remaining;
+          } else {
+            log("Stats error:", data);
           }
         } catch (e) {
-          console.warn("Failed to load stats:", e);
+          log("Failed to load stats:", e);
         }
       }
 
-      // Simple sound feedback (optional)
+      // Sound feedback
       function playSound(type) {
-        // Requires user interaction first due to browser policies
-        // You can add actual audio files here if needed
-        console.log(`🔊 Sound: ${type}`);
+        // Optional: Add actual sound files
+        log("🔊 Sound:", type);
       }
 
-      // Cleanup on page unload
+      // Debug logging
+      function log(...args) {
+        if (CONFIG.debugMode) {
+          console.log("[Scanner]", ...args);
+        }
+      }
+
+      // Cleanup
       window.addEventListener("beforeunload", function () {
         if (html5QrCode && isScanning) {
           html5QrCode.stop();
         }
       });
+
+      // Auto-refresh stats every 30 seconds
+      setInterval(() => {
+        if (!scanPaused) {
+          loadStats();
+        }
+      }, 30000);
     </script>
   </body>
 </html>
