@@ -358,8 +358,8 @@
       }
 
       .qr-box {
-        width: 160px;
-        height: 160px;
+        width: 220px; /* UBAH: 160 jadi 220 untuk QR lebih besar */
+        height: 220px;
         margin: 0 auto;
         border: 2px solid rgba(201, 168, 76, 0.4);
         border-radius: 12px;
@@ -499,8 +499,8 @@
           height: 40px;
         }
         .qr-box {
-          width: 140px;
-          height: 140px;
+          width: 180px; /* UBAH: 140 jadi 180 untuk mobile */
+          height: 180px;
         }
       }
     </style>
@@ -597,13 +597,13 @@
 
     <!-- ✅ Script Personalisasi + QR Code Dinamis -->
     <script>
-      // Konfigurasi
+      // Konfigurasi - DIPERBAIKI
       const CONFIG = {
         baseUrl: "https://marthynz.github.io/e-invitation",
         apiEndpoint:
-          "https://script.google.com/macros/s/AKfycbw703PW01pw0ZjQbYKz7z0nZdMKkWquiPhMsoHD9k1HWnk2xTJls35t54pn9LX1iGfJvA/exec", // ← MASUKKAN URL WEB APP ANDA
-        confirmationEndpoint: "?confirmed=true",
-        qrSize: 140,
+          "https://script.google.com/macros/s/AKfycbw703PW01pw0ZjQbYKz7z0nZdMKkWquiPhMsoHD9k1HWnk2xTJls35t54pn9LX1iGfJvA/exec",
+        confirmationEndpoint: "&confirmed=true", // ✅ DIPERBAIKI: ? jadi &
+        qrSize: 200, // ✅ DIPERBAIKI: 140 jadi 200 (lebih besar)
         qrColor: "#1b2a4a",
         qrBgColor: "#ffffff",
         // Token mapping dari Google Sheet (harus sesuai dengan data di sheet)
@@ -664,6 +664,7 @@
         document.title = `Invitation for ${name} | Apple Tree Pre School Kupang`;
       }
 
+      // ✅ FUNGSI DIPERBAIKI
       function generateDynamicQR(seatName, formattedName) {
         const qrContainer = document.getElementById("qrcode");
 
@@ -685,8 +686,14 @@
           return;
         }
 
-        // Buat URL konfirmasi dengan token
+        // ✅ Buat URL konfirmasi yang BENAR (tanpa double ?)
         const confirmationUrl = `${CONFIG.baseUrl}?seat=${encodeURIComponent(seatName)}&token=${encodeURIComponent(token)}${CONFIG.confirmationEndpoint}`;
+
+        // Log untuk debug
+        console.log("🔗 QR URL:", confirmationUrl);
+        console.log("Seat:", seatName);
+        console.log("Token:", token);
+        console.log("Formatted Name:", formattedName);
 
         qrContainer.innerHTML = "";
 
@@ -697,11 +704,10 @@
             height: CONFIG.qrSize,
             colorDark: CONFIG.qrColor,
             colorLight: CONFIG.qrBgColor,
-            correctLevel: QRCode.CorrectLevel.H,
+            correctLevel: QRCode.CorrectLevel.H, // High error correction
           });
 
           console.log(`✅ QR Code generated for: ${formattedName}`);
-          console.log(`🔗 URL: ${confirmationUrl}`);
         } catch (error) {
           console.error("❌ Failed to generate QR Code:", error);
           qrContainer.innerHTML =
