@@ -599,11 +599,20 @@
     <script>
       // Konfigurasi - Sesuaikan dengan URL GitHub Pages Anda
       const CONFIG = {
-        baseUrl: "https:'https://marthynz.github.io/e-invitation", // ⚠️ Ganti dengan URL Anda
+        baseUrl: "https://marthynz.github.io/e-invitation", // ⚠️ Ganti dengan URL Anda
         confirmationEndpoint: "?confirmed=true", // Parameter untuk konfirmasi
         qrSize: 140, // Ukuran QR Code (pixel)
         qrColor: "#1b2a4a", // Warna QR
         qrBgColor: "#ffffff", // Background QR
+        // Token configuration - NEEDS TO BE CUSTOMIZED BASED ON YOUR ACTUAL TOKEN LOGIC
+        // Option 1: If you have a static mapping of seat->token (from your spreadsheet)
+        tokenMap: {
+          // Example: "marthynz": "abc123def456",
+          // You need to populate this from your spreadsheet data
+        },
+        // Option 2: If tokens are generated algorithmically
+        tokenSecret: "your-secret-key-here", // <-- CHANGE THIS TO YOUR ACTUAL SECRET if using algorithmic generation
+        useAlgorithm: false, // Set to true if using algorithmic token generation
       };
 
       document.addEventListener("DOMContentLoaded", function () {
@@ -630,6 +639,55 @@
               word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
           )
           .join(" ");
+      }
+
+      // Generate token for a given seat
+      // NOTE: This function needs to be customized based on how tokens are generated in your system
+      function generateToken(seatName) {
+        if (!seatName) return "";
+
+        // OPTION 1: Use a predefined map (if you have a small number of guests)
+        // Uncomment and populate the map below with your actual seat-token pairs from the spreadsheet
+        /*
+        if (CONFIG.tokenMap && CONFIG.tokenMap[seatName]) {
+          return CONFIG.tokenMap[seatName];
+        }
+        */
+
+        // OPTION 2: Generate token algorithmically (if tokens are generated using a secret)
+        // Uncomment and implement your actual token generation algorithm below
+        /*
+        if (CONFIG.useAlgorithm && CONFIG.tokenSecret) {
+          // Example: Simple hash (NOT SECURE - for demonstration only)
+          // REPLACE THIS WITH YOUR ACTUAL TOKEN GENERATION ALGORITHM
+          // This should match whatever method was used to generate tokens in your spreadsheet
+
+          // Simple example (replace with your real implementation):
+          const text = seatName + CONFIG.tokenSecret;
+          let hash = 0;
+          for (let i = 0; i < text.length; i++) {
+            const char = text.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+          }
+          return Math.abs(hash).toString(16).substring(0, 8); // Return first 8 chars of hex hash
+        }
+        */
+
+        // OPTION 3: Fetch token from server (most flexible but requires network call)
+        // This would require making an async call to get the token, which complicates QR generation
+        // For now, we'll return a placeholder and log a warning
+
+        console.warn(`Token generation not implemented for seat: ${seatName}. Returning empty token.`);
+        console.warn("Please implement the generateToken() function based on your token generation method.");
+
+        // Return empty string - this will cause validation to fail, but at least won't break the QR
+        // In a real implementation, you would either:
+        // 1. Return the correct token from a map/algorithm
+        // 2. Make a synchronous lookup (if data is available)
+        // 3. Handle this case appropriately
+
+        return ""; // Placeholder - MUST BE REPLACED WITH REAL IMPLEMENTATION
       }
 
       // Personalisasi teks undangan
@@ -668,14 +726,18 @@
           return;
         }
 
+        // Generate token for this seat
+        const token = generateToken(seatName);
+
         // Data yang akan di-encode dalam QR Code
-        // Opsi 1: Link konfirmasi kehadiran
-        const confirmationUrl = `${CONFIG.baseUrl}?seat=${encodeURIComponent(seatName)}${CONFIG.confirmationEndpoint}`;
+        // Opsi 1: Link konfirmasi kehadiran dengan token
+        const confirmationUrl = `${CONFIG.baseUrl}?seat=${encodeURIComponent(seatName)}&token=${encodeURIComponent(token)}${CONFIG.confirmationEndpoint}`;
 
         // Opsi 2: JSON data (jika ingin menyimpan info lebih lengkap)
         // const qrData = JSON.stringify({
         //   guest: formattedName,
         //   seat: seatName,
+        //   token: token,
         //   event: 'Gala Dinner Apple Tree Pre School Kupang',
         //   date: '2026-07-31',
         //   action: 'confirm-attendance'
@@ -687,7 +749,7 @@
         // Generate QR Code menggunakan library qrcode.js
         try {
           new QRCode(qrContainer, {
-            text: confirmationUrl, // Data yang di-encode
+            text: confirmationUrl, // Data yang di-encode (now includes token)
             width: CONFIG.qrSize, // Lebar QR
             height: CONFIG.qrSize, // Tinggi QR
             colorDark: CONFIG.qrColor, // Warna QR
@@ -697,6 +759,7 @@
 
           console.log(`✅ QR Code generated for: ${formattedName}`);
           console.log(`🔗 Encoded URL: ${confirmationUrl}`);
+          console.log(`🔑 Token used: ${token}`);
         } catch (error) {
           console.error("❌ Failed to generate QR Code:", error);
           qrContainer.innerHTML =
