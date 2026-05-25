@@ -396,6 +396,7 @@
     </div>
 
     <script>
+      // ⚠️ GANTI DENGAN URL WEB APP ANDA
       const API_URL =
         "https://script.google.com/macros/s/AKfycbw703PW01pw0ZjQbYKz7z0nZdMKkWquiPhMsoHD9k1HWnk2xTJls35t54pn9LX1iGfJvA/exec";
 
@@ -422,11 +423,11 @@
           if (data.success) {
             showResult(
               "✅ <strong>API Connected!</strong><br>Ready to scan QR codes.",
-              "success",
+              "success"
             );
             setTimeout(
               () => showResult("📷 Arahkan kamera ke QR Code", "empty"),
-              3000,
+              3000
             );
           } else {
             showResult("⚠️ API: " + data.message, "warning");
@@ -445,7 +446,7 @@
             { facingMode: "environment" },
             { fps: 10, qrbox: { width: 250, height: 250 } },
             onScanSuccess,
-            onScanFailure,
+            onScanFailure
           );
 
           isScanning = true;
@@ -478,7 +479,7 @@
 
         showResult(
           '<div class="loading"><div class="spinner"></div> Validating...</div>',
-          "loading",
+          "loading"
         );
 
         try {
@@ -488,12 +489,14 @@
             throw new Error("Invalid QR Code");
           }
 
+          // ✅ PENTING: Gunakan action=confirm untuk update Google Sheet
           const url =
             API_URL +
-            "?action=validate&seat=" +
+            "?action=confirm&seat=" +
             encodeURIComponent(qrData.seat) +
             "&token=" +
             encodeURIComponent(qrData.token);
+          
           const response = await fetch(url);
           const result = await response.json();
 
@@ -507,7 +510,7 @@
             ${result.duplicate ? "Sudah Check-in" : "Check-in Berhasil"}
           </span>
         `,
-              result.duplicate ? "warning" : "success",
+              result.duplicate ? "warning" : "success"
             );
 
             if (!result.duplicate) loadStats();
@@ -556,16 +559,18 @@
 
         showResult(
           '<div class="loading"><div class="spinner"></div> Checking...</div>',
-          "loading",
+          "loading"
         );
 
         try {
+          // ✅ PENTING: Gunakan action=confirm untuk update Google Sheet
           const url =
             API_URL +
-            "?action=validate&seat=" +
+            "?action=confirm&seat=" +
             encodeURIComponent(seat) +
             "&token=" +
             encodeURIComponent(token);
+          
           const response = await fetch(url);
           const result = await response.json();
 
