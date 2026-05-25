@@ -11,6 +11,7 @@
     <style>
       :root {
         --gold: #c9a84c;
+        --gold-light: #e8d48b;
         --navy: #1b2a4a;
         --navy-dark: #0f1a30;
         --success: #22c55e;
@@ -56,7 +57,6 @@
         margin-top: 5px;
       }
 
-      /* Scanner Area */
       .scanner-box {
         background: rgba(30, 45, 79, 0.9);
         border: 2px solid var(--gold);
@@ -70,6 +70,7 @@
         border-radius: 8px;
         overflow: hidden;
         background: #000;
+        min-height: 250px;
       }
 
       #reader video {
@@ -91,55 +92,50 @@
         font-weight: 600;
         cursor: pointer;
         transition: all 0.2s;
+        font-size: 14px;
       }
 
       .btn-primary {
         background: var(--gold);
         color: var(--navy-dark);
       }
-
       .btn-primary:hover {
-        background: #e8d48b;
+        background: var(--gold-light);
       }
-
       .btn-danger {
         background: var(--error);
         color: white;
       }
-
       .btn-danger:hover {
         background: #dc2626;
       }
-
       .btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
       }
 
-      /* Result Display */
       .result-box {
         background: rgba(30, 45, 79, 0.9);
         border: 2px solid var(--gold);
         border-radius: 16px;
         padding: 20px;
         margin-bottom: 20px;
-        min-height: 120px;
+        min-height: 150px;
         display: flex;
         align-items: center;
         justify-content: center;
         text-align: center;
+        transition: border-color 0.3s;
       }
 
       .result-box.empty {
         opacity: 0.5;
         font-style: italic;
       }
-
       .result-success {
         border-color: var(--success);
         animation: pulse-success 0.5s;
       }
-
       .result-error {
         border-color: var(--error);
         animation: pulse-error 0.5s;
@@ -180,14 +176,21 @@
         font-size: 14px;
         opacity: 0.8;
       }
+      .guest-email {
+        font-size: 12px;
+        opacity: 0.6;
+        margin-top: 5px;
+      }
 
       .status-badge {
         display: inline-block;
-        padding: 4px 12px;
+        padding: 6px 16px;
         border-radius: 20px;
         font-size: 12px;
         font-weight: 600;
-        margin-top: 10px;
+        margin-top: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
       .status-valid {
@@ -203,7 +206,13 @@
         color: var(--navy-dark);
       }
 
-      /* Stats */
+      .checked-time {
+        font-size: 11px;
+        opacity: 0.7;
+        margin-top: 8px;
+        font-style: italic;
+      }
+
       .stats-box {
         background: rgba(30, 45, 79, 0.9);
         border: 1px solid rgba(201, 168, 76, 0.3);
@@ -213,10 +222,11 @@
         grid-template-columns: repeat(3, 1fr);
         gap: 10px;
         text-align: center;
+        margin-bottom: 20px;
       }
 
       .stat-item .value {
-        font-size: 20px;
+        font-size: 22px;
         font-weight: 700;
         color: var(--gold);
       }
@@ -225,20 +235,21 @@
         font-size: 10px;
         opacity: 0.7;
         text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
-      /* Loading */
       .loading {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 10px;
+        gap: 12px;
         color: var(--gold);
+        font-size: 14px;
       }
 
       .spinner {
-        width: 20px;
-        height: 20px;
+        width: 24px;
+        height: 24px;
         border: 3px solid rgba(201, 168, 76, 0.3);
         border-top-color: var(--gold);
         border-radius: 50%;
@@ -251,7 +262,42 @@
         }
       }
 
-      /* Responsive */
+      .manual-input {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .manual-input input {
+        flex: 1;
+        padding: 10px 14px;
+        border: 1px solid var(--gold);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        font-size: 14px;
+      }
+
+      .manual-input input::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+      }
+      .manual-input input:focus {
+        outline: none;
+        border-color: var(--gold-light);
+      }
+
+      .log-panel {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+        padding: 10px;
+        font-size: 10px;
+        font-family: monospace;
+        max-height: 100px;
+        overflow-y: auto;
+        margin-top: 15px;
+        opacity: 0.7;
+      }
+
       @media (max-width: 480px) {
         .scanner-box,
         .result-box,
@@ -260,6 +306,10 @@
         }
         .header h1 {
           font-size: 20px;
+        }
+        .stats-box {
+          grid-template-columns: 1fr;
+          gap: 8px;
         }
       }
     </style>
@@ -312,33 +362,37 @@
 
       <!-- Result -->
       <div class="result-box empty" id="result-box">
-        <span>Scan QR Code undangan tamu untuk validasi kehadiran</span>
+        <span>📷 Arahkan kamera ke QR Code undangan tamu</span>
       </div>
 
-      <!-- Manual Input (Fallback) -->
+      <!-- Manual Input Fallback -->
       <div class="scanner-box">
         <p style="font-size: 12px; margin-bottom: 10px; opacity: 0.7">
           💡 Tidak bisa scan? Input manual:
         </p>
-        <div style="display: flex; gap: 10px">
+        <div class="manual-input">
           <input
             type="text"
             id="manual-seat"
             placeholder="seat (contoh: marthynz)"
-            style="
-              flex: 1;
-              padding: 10px;
-              border: 1px solid var(--gold);
-              border-radius: 6px;
-              background: rgba(255, 255, 255, 0.1);
-              color: #fff;
-            "
+          />
+          <input
+            type="text"
+            id="manual-token"
+            placeholder="token"
+            style="flex: 0.8"
           />
           <button class="btn btn-primary" onclick="validateManual()">
             ✓ Cek
           </button>
         </div>
       </div>
+
+      <!-- Debug Log (opsional) -->
+      <details style="margin-top: 20px; opacity: 0.7">
+        <summary style="cursor: pointer; font-size: 12px">🔧 Debug Log</summary>
+        <div class="log-panel" id="log-panel"></div>
+      </details>
     </div>
 
     <script>
@@ -346,50 +400,44 @@
       const API_URL =
         "https://script.google.com/macros/s/AKfycbytboVxwx0mmc7PsJEy6eu0ijwUfaJqHnpx9kNwhKW-49L9eNLLsyRkdBnQAJfbGjMhxw/exec";
 
-      // Konfigurasi
       const CONFIG = {
         inviteBaseUrl: "https://marthynz.github.io/e-invitation?",
-        debugMode: true, // Set false di production
+        debugMode: false, // Set true untuk debug
       };
 
       let html5QrCode = null;
       let isScanning = false;
       let scanPaused = false;
 
-      // Test koneksi API saat load
       document.addEventListener("DOMContentLoaded", async function () {
-        log("Scanner initialized");
+        log("🚀 Scanner initialized");
         await testAPIConnection();
         await loadStats();
       });
 
-      // Test koneksi ke API
+      // Test koneksi API
       async function testAPIConnection() {
         try {
-          log("Testing API connection...");
-          const response = await fetch(
-            `${API_URL}?action=test&origin=${window.location.origin}`,
-            {
-              method: "GET",
-              mode: "cors",
-            },
-          );
-
+          log("🔌 Testing API connection...");
+          const response = await fetch(`${API_URL}?action=test`, {
+            mode: "cors",
+          });
           const data = await response.json();
-          log("API Test Result:", data);
+          log("✅ API Test:", data);
 
-          if (data.success || data.status === "ok") {
-            showResult("✅ API Connected! Ready to scan.", "success");
+          if (data.success) {
+            showToast("✅ API Connected!", "success");
           } else {
-            showResult(
-              "⚠️ API connected but returned: " + JSON.stringify(data),
-              "warning",
-            );
+            showResult("⚠️ API Warning: " + JSON.stringify(data), "warning");
           }
         } catch (error) {
-          log("API Connection Error:", error);
+          log("❌ API Error:", error);
           showResult(
-            `❌ Cannot connect to API<br><small>${error.message}</small><br><br>Check:<br>1. API URL is correct<br>2. Web App is deployed<br>3. CORS is enabled`,
+            `❌ Cannot connect to API<br><small>${error.message}</small><br><br>
+            Pastikan:<br>
+            1. URL Web App benar<br>
+            2. Web App deployed sebagai "Anyone"<br>
+            3. Menggunakan HTTPS`,
             "error",
           );
         }
@@ -400,11 +448,8 @@
         if (isScanning) return;
 
         try {
-          log("Starting scanner...");
+          log("🎥 Starting scanner...");
           html5QrCode = new Html5Qrcode("reader");
-
-          const devices = await Html5Qrcode.getCameras();
-          log("Available cameras:", devices);
 
           await html5QrCode.start(
             { facingMode: "environment" },
@@ -412,7 +457,6 @@
               fps: 10,
               qrbox: { width: 250, height: 250 },
               aspectRatio: 1.0,
-              disableFlip: false,
             },
             onScanSuccess,
             onScanFailure,
@@ -422,11 +466,15 @@
           scanPaused = false;
           document.getElementById("btn-start").disabled = true;
           document.getElementById("btn-stop").disabled = false;
-          log("Scanner started successfully");
+          log("✅ Scanner started");
         } catch (err) {
-          log("Scanner error:", err);
+          log("❌ Scanner error:", err);
           showResult(
-            `❌ Gagal mengakses kamera<br><small>${err.message}</small><br><br>Pastikan:<br>1. Izin kamera diberikan<br>2. Menggunakan HTTPS<br>3. Browser mendukung`,
+            `❌ Gagal mengakses kamera<br><small>${err.message}</small><br><br>
+            Pastikan:<br>
+            1. Izin kamera diberikan<br>
+            2. Menggunakan HTTPS<br>
+            3. Browser mendukung WebRTC`,
             "error",
           );
         }
@@ -443,159 +491,157 @@
               document.getElementById("btn-start").disabled = false;
               document.getElementById("btn-stop").disabled = true;
               html5QrCode.clear();
-              log("Scanner stopped");
+              log("⏹ Scanner stopped");
             })
-            .catch((err) => {
-              log("Stop error:", err);
-            });
+            .catch((err) => log("Stop error:", err));
         }
       }
 
       // Handle successful scan
       async function onScanSuccess(decodedText) {
         if (scanPaused) return;
-
-        // Pause scanning
         scanPaused = true;
+
+        // Pause scanner sementara
         if (html5QrCode) {
           try {
             await html5QrCode.pause();
-          } catch (e) {
-            log("Pause error:", e);
-          }
+          } catch (e) {}
         }
 
-        log("QR Scanned:", decodedText);
+        log("📦 QR Scanned:", decodedText);
         showResult(
-          '<div class="loading"><div class="spinner"></div> Memvalidasi QR Code...</div>',
+          '<div class="loading"><div class="spinner"></div> Memvalidasi...</div>',
           "loading",
         );
 
         try {
-          // Parse QR data
-          let qrData = parseQRData(decodedText);
-          log("Parsed QR Data:", qrData);
+          const qrData = parseQRData(decodedText);
+          log("🔍 Parsed:", qrData);
 
-          if (!qrData.seat) {
-            throw new Error(
-              `Invalid QR format. Missing: seat`,
-            );
+          if (!qrData.seat || !qrData.token) {
+            throw new Error("QR tidak valid: missing seat atau token");
           }
 
-          // Call validation API - only include token if present
-          let validateUrl = `${API_URL}?action=validate&seat=${encodeURIComponent(qrData.seat)}&origin=${window.location.origin}`;
-          if (qrData.token) {
-            validateUrl += `&token=${encodeURIComponent(qrData.token)}`;
-          }
-
-          log("Calling API:", validateUrl);
+          // Call validation API (action=validate akan update checked_at)
+          const validateUrl = `${API_URL}?action=validate&seat=${encodeURIComponent(qrData.seat)}&token=${encodeURIComponent(qrData.token)}`;
 
           const response = await fetch(validateUrl, {
             method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
             mode: "cors",
-            credentials: "omit",
+            headers: { "Content-Type": "application/json" },
           });
 
-          log("Response status:", response.status);
-
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
           const result = await response.json();
-          log("API Response:", result);
+          log("📡 API Response:", result);
 
           displayValidationResult(result, qrData);
-        } catch (error) {
-          log("Validation error:", error);
-          showResult(
-            `❌ Gagal validasi<br><small>${error.message}</small><br><br>Check console untuk detail`,
-            "error",
-          );
-        }
 
-        // Resume scanning after delay
-        setTimeout(() => {
-          resumeScanning();
-        }, 4000);
-      }
-
-      function parseQRData(decodedText) {
-        try {
-          // Coba parse sebagai JSON
-          return JSON.parse(decodedText);
-        } catch (e) {
-          // Jika bukan JSON, coba parse sebagai URL
-          try {
-            let urlStr = decodedText;
-            if (!urlStr.includes("http")) {
-              urlStr = CONFIG.inviteBaseUrl + urlStr;
-            }
-
-            const url = new URL(urlStr);
-            return {
-              seat: url.searchParams.get("seat"),
-              token: url.searchParams.get("token"),
-              raw: decodedText,
-            };
-          } catch (e2) {
-            log("Parse error:", e2);
-            return { raw: decodedText };
+          if (result.success && !result.duplicate) {
+            playSound("success");
+            await loadStats(); // Refresh stats
+          } else if (result.duplicate) {
+            playSound("warning");
+          } else {
+            playSound("error");
           }
-        }
-      }
-
-      function displayValidationResult(result, qrData) {
-        if (result.success) {
+        } catch (error) {
+          log("❌ Validation error:", error);
           showResult(
-            `
-        <div style="color:#22c55e; font-size:50px; margin-bottom:10px">✅</div>
-        <div class="guest-name">${result.guest.name || "Unknown"}</div>
-        <div class="guest-seat">Seat: ${result.guest.seat || qrData.seat}</div>
-        <span class="status-badge status-valid">✓ Kehadiran Dikonfirmasi</span>
-        <div style="margin-top:15px; font-size:12px; opacity:0.7">
-          🕐 ${new Date().toLocaleString("id-ID")}
-        </div>
-        `,
-            "success",
-          );
-          playSound("success");
-          loadStats(); // Refresh stats
-        } else if (
-          result.duplicate ||
-          result.message === "Already checked in"
-        ) {
-          showResult(
-            `
-        <div style="color:#f59e0b; font-size:50px; margin-bottom:10px">⚠️</div>
-        <div class="guest-name">${result.guest?.name || "Unknown"}</div>
-        <div class="guest-seat">Seat: ${result.guest?.seat || qrData.seat}</div>
-        <span class="status-badge status-duplicate">Sudah Check-in</span>
-        <div style="margin-top:15px; font-size:11px; opacity:0.7">
-          🕐 ${result.guest?.checkedAt ? new Date(result.guest.checkedAt).toLocaleString("id-ID") : "-"}
-        </div>
-        `,
-            "warning",
-          );
-          playSound("warning");
-        } else {
-          showResult(
-            `
-        <div style="color:#ef4444; font-size:50px; margin-bottom:10px">❌</div>
-        <div style="font-weight:600; margin:10px 0; font-size:18px">Tidak Valid</div>
-        <span class="status-badge status-invalid">${result.message || result.error || "Unknown error"}</span>
-        <div style="margin-top:15px; font-size:11px; opacity:0.7; max-width:300px; word-break:break-all">
-          Seat: ${qrData.seat}<br>
-          ${result.searched ? "Token: " + qrData.token : ""}
-        </div>
-        `,
+            `❌ Gagal validasi<br><small>${error.message}</small>`,
             "error",
           );
           playSound("error");
+        }
+
+        // Resume scanning setelah 3.5 detik
+        setTimeout(resumeScanning, 3500);
+      }
+
+      // Parse QR data (URL atau JSON)
+      function parseQRData(decodedText) {
+        // Coba parse JSON dulu
+        try {
+          const json = JSON.parse(decodedText);
+          return { seat: json.seat, token: json.token, email: json.email };
+        } catch (e) {}
+
+        // Parse sebagai URL
+        try {
+          let urlStr = decodedText;
+          if (!urlStr.startsWith("http")) {
+            urlStr = CONFIG.inviteBaseUrl + urlStr;
+          }
+          const url = new URL(urlStr);
+          return {
+            seat: url.searchParams.get("seat"),
+            token: url.searchParams.get("token"),
+            confirmed: url.searchParams.get("confirmed"),
+            raw: decodedText,
+          };
+        } catch (e) {
+          return { raw: decodedText };
+        }
+      }
+
+      // Display result dengan format elegan
+      function displayValidationResult(result, qrData) {
+        if (result.success) {
+          const guest = result.guest || {};
+          const checkedTime = guest.checkedAt
+            ? new Date(guest.checkedAt).toLocaleString("id-ID", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })
+            : "-";
+
+          showResult(
+            `
+            <div style="color:#22c55e; font-size:56px; margin-bottom:8px; animation:scaleIn 0.3s">✅</div>
+            <div class="guest-name">${escapeHtml(guest.name || "Unknown")}</div>
+            <div class="guest-seat">🪑 Seat: <strong>${escapeHtml(guest.seat || qrData.seat)}</strong></div>
+            ${guest.email ? `<div class="guest-email">✉️ ${escapeHtml(guest.email)}</div>` : ""}
+            <span class="status-badge status-valid">${result.duplicate ? "✓ Sudah Check-in" : "✓ Kehadiran Dikonfirmasi"}</span>
+            <div class="checked-time">
+              ${result.duplicate ? `🕐 Check-in sebelumnya: ${checkedTime}` : `🕐 Check-in: ${new Date().toLocaleString("id-ID")}`}
+            </div>
+          `,
+            "success",
+          );
+        } else if (result.duplicate || result.message?.includes("sudah")) {
+          const guest = result.guest || {};
+          const checkedTime = guest.checkedAt
+            ? new Date(guest.checkedAt).toLocaleString("id-ID", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })
+            : "-";
+
+          showResult(
+            `
+            <div style="color:#f59e0b; font-size:56px; margin-bottom:8px">⚠️</div>
+            <div class="guest-name">${escapeHtml(guest.name || "Unknown")}</div>
+            <div class="guest-seat">🪑 Seat: ${escapeHtml(guest.seat || qrData.seat)}</div>
+            <span class="status-badge status-duplicate">Sudah Check-in</span>
+            <div class="checked-time">🕐 ${checkedTime}</div>
+          `,
+            "warning",
+          );
+        } else {
+          showResult(
+            `
+            <div style="color:#ef4444; font-size:56px; margin-bottom:8px">❌</div>
+            <div style="font-weight:600; margin:10px 0; font-size:18px">Tidak Valid</div>
+            <span class="status-badge status-invalid">${escapeHtml(result.message || "Unknown error")}</span>
+            <div style="margin-top:15px; font-size:11px; opacity:0.7">
+              Seat: ${escapeHtml(qrData.seat || "-")}<br>
+              Token: ${qrData.token ? "***" + qrData.token.slice(-4) : "-"}
+            </div>
+          `,
+            "error",
+          );
         }
       }
 
@@ -605,33 +651,29 @@
             .resume()
             .then(() => {
               scanPaused = false;
-              log("Scanner resumed");
+              log("🔄 Scanner resumed");
             })
             .catch((err) => {
-              log("Resume error:", err);
-              // Restart scanner jika resume gagal
+              log("Resume failed, restarting...", err);
               stopScanner();
-              setTimeout(() => startScanner(), 1000);
+              setTimeout(startScanner, 1000);
             });
         }
       }
 
-      // Handle scan failure
       function onScanFailure(message) {
-        // Don't log every failure to avoid spam
-        // log('Scan failure:', message);
+        // Silent fail - jangan spam console
       }
 
       // Manual validation
       async function validateManual() {
         const seat = document.getElementById("manual-seat").value.trim();
-        if (!seat) {
-          showResult("⚠️ Masukkan seat terlebih dahulu", "error");
+        const token = document.getElementById("manual-token").value.trim();
+
+        if (!seat || !token) {
+          showResult("⚠️ Masukkan seat DAN token", "error");
           return;
         }
-
-        const token = prompt("Masukkan token untuk " + seat + ":");
-        if (!token) return;
 
         showResult(
           '<div class="loading"><div class="spinner"></div> Memvalidasi...</div>',
@@ -640,60 +682,40 @@
 
         try {
           const response = await fetch(
-            `${API_URL}?action=validate&seat=${encodeURIComponent(seat)}&token=${encodeURIComponent(token)}&origin=${window.location.origin}`,
-            {
-              method: "GET",
-              headers: { "Content-Type": "application/json" },
-              mode: "cors",
-            },
+            `${API_URL}?action=validate&seat=${encodeURIComponent(seat)}&token=${encodeURIComponent(token)}`,
+            { method: "GET", mode: "cors" },
           );
-
           const result = await response.json();
           displayValidationResult(result, { seat, token });
 
-          if (result.success) {
-            loadStats();
-          }
+          if (result.success && !result.duplicate) await loadStats();
         } catch (e) {
-          log("Manual validation error:", e);
-          showResult(
-            "❌ Gagal terhubung ke server<br><small>" + e.message + "</small>",
-            "error",
-          );
+          log("Manual error:", e);
+          showResult("❌ Gagal terhubung ke server", "error");
         }
       }
 
-      // Display result
+      // Show result with animation
       function showResult(html, type) {
         const box = document.getElementById("result-box");
-        box.className = "result-box";
+        box.className = "result-box"; // Reset classes
 
-        if (type === "success") {
-          box.classList.add("result-success");
-        } else if (type === "error") {
-          box.classList.add("result-error");
-        } else if (type === "warning") {
-          box.style.borderColor = "var(--warning)";
-        } else if (type === "loading" || type === "empty") {
+        if (type === "success") box.classList.add("result-success");
+        else if (type === "error") box.classList.add("result-error");
+        else if (type === "warning") box.style.borderColor = "var(--warning)";
+        else if (type === "loading" || type === "empty")
           box.classList.add("empty");
-        }
 
         box.innerHTML = html;
       }
 
-      // Load stats
+      // Load stats from API
       async function loadStats() {
         try {
-          const response = await fetch(
-            `${API_URL}?action=stats&origin=${window.location.origin}`,
-            {
-              method: "GET",
-              mode: "cors",
-            },
-          );
-
+          const response = await fetch(`${API_URL}?action=stats`, {
+            mode: "cors",
+          });
           const data = await response.json();
-          log("Stats loaded:", data);
 
           if (data.success && data.stats) {
             document.getElementById("stat-total").textContent =
@@ -702,40 +724,72 @@
               data.stats.checkedIn;
             document.getElementById("stat-remaining").textContent =
               data.stats.remaining;
-          } else {
-            log("Stats error:", data);
+            log("📊 Stats updated:", data.stats);
           }
         } catch (e) {
-          log("Failed to load stats:", e);
+          log("Stats error:", e);
         }
       }
 
-      // Sound feedback
+      // Sound feedback (opsional - bisa ditambah file audio)
       function playSound(type) {
-        // Optional: Add actual sound files
+        // Contoh: new Audio(`/sounds/${type}.mp3`).play().catch(()=>{});
         log("🔊 Sound:", type);
+      }
+
+      // Escape HTML untuk mencegah XSS
+      function escapeHtml(text) {
+        if (!text) return "";
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
       }
 
       // Debug logging
       function log(...args) {
         if (CONFIG.debugMode) {
           console.log("[Scanner]", ...args);
+          const panel = document.getElementById("log-panel");
+          if (panel) {
+            const time = new Date().toLocaleTimeString();
+            panel.innerHTML += `<div>[${time}] ${args.map((a) => (typeof a === "object" ? JSON.stringify(a) : a)).join(" ")}</div>`;
+            panel.scrollTop = panel.scrollHeight;
+          }
         }
       }
 
+      // Toast notification
+      function showToast(message, type = "info") {
+        const toast = document.createElement("div");
+        toast.style.cssText = `
+          position:fixed; top:20px; left:50%; transform:translateX(-50%);
+          background:${type === "success" ? "#22c55e" : type === "error" ? "#ef4444" : "#3b82f6"};
+          color:white; padding:12px 24px; border-radius:8px; 
+          font-weight:500; z-index:10000; animation:slideIn 0.3s, fadeOut 0.3s 2.7s;
+        `;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+      }
+
       // Cleanup
-      window.addEventListener("beforeunload", function () {
-        if (html5QrCode && isScanning) {
-          html5QrCode.stop();
-        }
+      window.addEventListener("beforeunload", () => {
+        if (html5QrCode && isScanning) html5QrCode.stop();
       });
 
-      // Auto-refresh stats every 30 seconds
+      // Auto-refresh stats
       setInterval(() => {
-        if (!scanPaused) {
-          loadStats();
-        }
+        if (!scanPaused) loadStats();
       }, 30000);
+
+      // CSS animations
+      const style = document.createElement("style");
+      style.textContent = `
+        @keyframes scaleIn { from{transform:scale(0)} to{transform:scale(1)} }
+        @keyframes slideIn { from{opacity:0;transform:translate(-50%,-20px)} to{opacity:1;transform:translate(-50%,0)} }
+        @keyframes fadeOut { from{opacity:1} to{opacity:0} }
+      `;
+      document.head.appendChild(style);
     </script>
   </body>
 </html>
