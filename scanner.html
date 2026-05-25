@@ -15,11 +15,13 @@
         --error: #ef4444;
         --warning: #f59e0b;
       }
+
       * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
       }
+
       body {
         font-family: "Montserrat", sans-serif;
         background: var(--navy-dark);
@@ -27,21 +29,25 @@
         min-height: 100vh;
         padding: 20px;
       }
+
       .container {
         max-width: 600px;
         margin: 0 auto;
       }
+
       .header {
         text-align: center;
         padding: 20px 0;
         border-bottom: 2px solid var(--gold);
         margin-bottom: 20px;
       }
+
       .header h1 {
         font-family: "Playfair Display", serif;
         color: var(--gold);
         font-size: 24px;
       }
+
       .header p {
         font-size: 12px;
         opacity: 0.7;
@@ -59,59 +65,94 @@
         text-align: center;
         margin-bottom: 20px;
       }
+
       .stat-item .value {
         font-size: 22px;
         font-weight: 700;
         color: var(--gold);
       }
+
       .stat-item .label {
         font-size: 10px;
         opacity: 0.7;
         text-transform: uppercase;
       }
 
+      /* Scanner Wrapper - IMPROVED */
       .scanner-wrapper {
         position: relative;
         margin-bottom: 20px;
+        background: #000;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 2px solid var(--gold);
       }
 
       .scanner-box {
-        background: rgba(30, 45, 79, 0.9);
-        border: 2px solid var(--gold);
-        border-radius: 16px;
-        padding: 20px;
+        position: relative;
+        width: 100%;
       }
 
       #reader {
         width: 100%;
-        border-radius: 8px;
-        overflow: hidden;
+        height: auto;
+        min-height: 400px;
         background: #000;
-        min-height: 300px;
-      }
-      #reader video {
-        width: 100%;
-        border-radius: 8px;
+        position: relative;
       }
 
-      /* Scanner overlay - DIPINDAH KELUAR */
+      #reader video {
+        width: 100%;
+        height: auto;
+        display: block;
+        object-fit: cover;
+      }
+
+      /* Scanner Overlay - FIXED POSITIONING */
       .scanner-overlay {
         position: absolute;
-        top: 93px; /* Sesuaikan dengan padding + posisi */
+        top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        width: 250px;
-        height: 250px;
+        width: 280px;
+        height: 280px;
         border: 3px solid var(--gold);
-        border-radius: 12px;
+        border-radius: 16px;
         pointer-events: none;
-        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
-        z-index: 10;
+        z-index: 100;
         display: none;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7);
       }
+
       .scanner-overlay::before,
       .scanner-overlay::after {
         content: "";
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        border-color: var(--gold-light);
+        border-style: solid;
+        border-width: 0;
+      }
+
+      .scanner-overlay::before {
+        top: 10px;
+        left: 10px;
+        border-top-width: 4px;
+        border-left-width: 4px;
+        border-radius: 8px 0 0 0;
+      }
+
+      .scanner-overlay::after {
+        top: 10px;
+        right: 10px;
+        border-top-width: 4px;
+        border-right-width: 4px;
+        border-radius: 0 8px 0 0;
+      }
+
+      /* Corner Markers */
+      .corner {
         position: absolute;
         width: 30px;
         height: 30px;
@@ -119,26 +160,46 @@
         border-style: solid;
         border-width: 0;
       }
-      .scanner-overlay::before {
-        top: -3px;
-        left: -3px;
+
+      .corner.top-left {
+        top: 20px;
+        left: 20px;
         border-top-width: 4px;
         border-left-width: 4px;
-        border-radius: 12px 0 0 0;
+        border-radius: 8px 0 0 0;
       }
-      .scanner-overlay::after {
-        top: -3px;
-        right: -3px;
+
+      .corner.top-right {
+        top: 20px;
+        right: 20px;
         border-top-width: 4px;
         border-right-width: 4px;
-        border-radius: 0 12px 0 0;
+        border-radius: 0 8px 0 0;
+      }
+
+      .corner.bottom-left {
+        bottom: 20px;
+        left: 20px;
+        border-bottom-width: 4px;
+        border-left-width: 4px;
+        border-radius: 0 0 0 8px;
+      }
+
+      .corner.bottom-right {
+        bottom: 20px;
+        right: 20px;
+        border-bottom-width: 4px;
+        border-right-width: 4px;
+        border-radius: 0 0 8px 0;
       }
 
       .scanner-controls {
         display: flex;
         gap: 10px;
-        margin-top: 15px;
+        padding: 15px;
+        background: rgba(30, 45, 79, 0.95);
       }
+
       .btn {
         flex: 1;
         padding: 12px;
@@ -149,20 +210,25 @@
         transition: all 0.2s;
         font-size: 14px;
       }
+
       .btn-primary {
         background: var(--gold);
         color: var(--navy-dark);
       }
+
       .btn-primary:hover {
         background: var(--gold-light);
       }
+
       .btn-danger {
         background: var(--error);
         color: white;
       }
+
       .btn-danger:hover {
         background: #dc2626;
       }
+
       .btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
@@ -181,18 +247,22 @@
         text-align: center;
         transition: all 0.3s;
       }
+
       .result-box.empty {
         opacity: 0.5;
         font-style: italic;
       }
+
       .result-success {
         border-color: var(--success);
         background: rgba(34, 197, 94, 0.1);
       }
+
       .result-error {
         border-color: var(--error);
         background: rgba(239, 68, 68, 0.1);
       }
+
       .result-warning {
         border-color: var(--warning);
         background: rgba(245, 158, 11, 0.1);
@@ -206,6 +276,7 @@
         color: var(--gold);
         font-size: 14px;
       }
+
       .spinner {
         width: 24px;
         height: 24px;
@@ -214,6 +285,7 @@
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
+
       @keyframes spin {
         to {
           transform: rotate(360deg);
@@ -225,6 +297,7 @@
         gap: 10px;
         margin-top: 10px;
       }
+
       .manual-input input {
         flex: 1;
         padding: 10px 14px;
@@ -234,9 +307,11 @@
         color: #fff;
         font-size: 14px;
       }
+
       .manual-input input::placeholder {
         color: rgba(255, 255, 255, 0.5);
       }
+
       .manual-input input:focus {
         outline: none;
         border-color: var(--gold-light);
@@ -252,21 +327,26 @@
         max-height: 200px;
         overflow-y: auto;
       }
+
       .debug-info h4 {
         color: var(--gold);
         margin-bottom: 10px;
         font-size: 12px;
       }
+
       .debug-line {
         padding: 3px 0;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       }
+
       .debug-line.success {
         color: var(--success);
       }
+
       .debug-line.error {
         color: var(--error);
       }
+
       .debug-line.info {
         color: #60a5fa;
       }
@@ -274,6 +354,7 @@
       .qr-detected {
         animation: pulse-border 0.5s ease-in-out;
       }
+
       @keyframes pulse-border {
         0%,
         100% {
@@ -286,22 +367,53 @@
       }
 
       @media (max-width: 480px) {
+        .scanner-overlay {
+          width: 240px;
+          height: 240px;
+        }
+
+        .corner {
+          width: 25px;
+          height: 25px;
+        }
+
+        .corner.top-left,
+        .corner.top-right {
+          top: 15px;
+        }
+
+        .corner.bottom-left,
+        .corner.bottom-right {
+          bottom: 15px;
+        }
+
+        .corner.top-left,
+        .corner.bottom-left {
+          left: 15px;
+        }
+
+        .corner.top-right,
+        .corner.bottom-right {
+          right: 15px;
+        }
+
+        #reader {
+          min-height: 350px;
+        }
+
         .scanner-box,
         .result-box,
         .stats-box {
           padding: 15px;
         }
+
         .header h1 {
           font-size: 20px;
         }
+
         .stats-box {
           grid-template-columns: 1fr;
           gap: 8px;
-        }
-        .scanner-overlay {
-          top: 88px;
-          width: 200px;
-          height: 200px;
         }
       }
     </style>
@@ -329,28 +441,24 @@
         </div>
       </div>
 
-      <!-- Scanner Wrapper dengan Overlay TERPISAH -->
+      <!-- Scanner Wrapper dengan Overlay yang Lebih Baik -->
       <div class="scanner-wrapper">
         <div class="scanner-box">
           <div id="reader"></div>
+          <!-- Overlay corners -->
+          <div class="scanner-overlay" id="scanner-overlay">
+            <div class="corner top-left"></div>
+            <div class="corner top-right"></div>
+            <div class="corner bottom-left"></div>
+            <div class="corner bottom-right"></div>
+          </div>
         </div>
-        <!-- Overlay DIPINDAH KELUAR dari #reader -->
-        <div class="scanner-overlay" id="scanner-overlay"></div>
 
         <div class="scanner-controls">
-          <button
-            class="btn btn-primary"
-            id="btn-start"
-            onclick="startScanner()"
-          >
+          <button class="btn btn-primary" id="btn-start" onclick="startScanner()">
             🎥 Mulai Scan
           </button>
-          <button
-            class="btn btn-danger"
-            id="btn-stop"
-            onclick="stopScanner()"
-            disabled
-          >
+          <button class="btn btn-danger" id="btn-stop" onclick="stopScanner()" disabled>
             ⏹ Stop
           </button>
         </div>
@@ -362,34 +470,21 @@
       </div>
 
       <!-- Manual Input -->
-      <div class="scanner-box" style="margin-top: 20px">
+      <div class="scanner-box" style="margin-top: 20px; padding: 15px">
         <p style="font-size: 12px; margin-bottom: 10px; opacity: 0.7">
           💡 Tidak bisa scan? Input manual:
         </p>
         <div class="manual-input">
-          <input
-            type="text"
-            id="manual-seat"
-            placeholder="seat (contoh: marthynz)"
-          />
-          <input
-            type="text"
-            id="manual-token"
-            placeholder="token"
-            style="flex: 0.8"
-          />
-          <button class="btn btn-primary" onclick="validateManual()">
-            ✓ Cek
-          </button>
+          <input type="text" id="manual-seat" placeholder="seat (contoh: marthynz)" />
+          <input type="text" id="manual-token" placeholder="token" style="flex: 0.8" />
+          <button class="btn btn-primary" onclick="validateManual()">✓ Cek</button>
         </div>
       </div>
 
       <!-- Debug Info -->
-      <div class="scanner-box" style="margin-top: 20px">
+      <div class="scanner-box" style="margin-top: 20px; padding: 15px">
         <details>
-          <summary
-            style="cursor: pointer; color: var(--gold); font-weight: 600"
-          >
+          <summary style="cursor: pointer; color: var(--gold); font-weight: 600">
             🔧 Debug Information (Klik untuk expand)
           </summary>
           <div class="debug-info" id="debug-info">
@@ -426,7 +521,7 @@
         debugDiv.innerHTML = debugLines
           .map(
             (line) =>
-              `<div class="debug-line ${line.type}">[${line.time}] ${line.message}</div>`,
+              `<div class="debug-line ${line.type}">[${line.time}] ${line.message}</div>`
           )
           .join("");
       }
@@ -444,17 +539,17 @@
           const data = await response.json();
           addDebug(
             "API Response: " + JSON.stringify(data),
-            data.success ? "success" : "error",
+            data.success ? "success" : "error"
           );
 
           if (data.success) {
             showResult(
               "✅ <strong>API Connected!</strong><br>Ready to scan.",
-              "success",
+              "success"
             );
             setTimeout(
               () => showResult("📷 Arahkan kamera ke QR Code", "empty"),
-              3000,
+              3000
             );
           } else {
             showResult("⚠️ API: " + data.message, "warning");
@@ -476,25 +571,28 @@
             { facingMode: "environment" },
             {
               fps: 10,
-              qrbox: { width: 250, height: 250 },
+              qrbox: { width: 280, height: 280 },
               aspectRatio: 1.0,
               disableFlip: false,
+              videoConstraints: {
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+                facingMode: "environment",
+              },
             },
             onScanSuccess,
-            onScanFailure,
+            onScanFailure
           );
 
           isScanning = true;
           document.getElementById("btn-start").disabled = true;
           document.getElementById("btn-stop").disabled = false;
 
-          // Tampilkan overlay dengan null check
+          // Tampilkan overlay
           const overlay = document.getElementById("scanner-overlay");
           if (overlay) {
             overlay.style.display = "block";
             addDebug("Scanner started + overlay shown", "success");
-          } else {
-            addDebug("Scanner started (overlay not found)", "warning");
           }
 
           showResult("📷 Scanner aktif. Arahkan ke QR Code...", "empty");
@@ -511,7 +609,7 @@
             document.getElementById("btn-start").disabled = false;
             document.getElementById("btn-stop").disabled = true;
 
-            // Sembunyikan overlay dengan null check
+            // Sembunyikan overlay
             const overlay = document.getElementById("scanner-overlay");
             if (overlay) {
               overlay.style.display = "none";
@@ -527,7 +625,7 @@
 
         addDebug("QR DETECTED! Raw data: " + decodedText, "success");
 
-        // Visual feedback dengan null check
+        // Visual feedback
         const overlay = document.getElementById("scanner-overlay");
         if (overlay) {
           overlay.classList.add("qr-detected");
@@ -543,7 +641,7 @@
 
         showResult(
           '<div class="loading"><div class="spinner"></div> Validating QR...</div>',
-          "loading",
+          "loading"
         );
         addDebug("Parsing QR data...", "info");
 
@@ -573,15 +671,13 @@
           const result = await response.json();
           addDebug(
             "API Response: " + JSON.stringify(result),
-            result.success ? "success" : "error",
+            result.success ? "success" : "error"
           );
 
           if (result.success) {
             const guestName = result.guest?.name || "Unknown";
             const seatName = result.guest?.seat || qrData.seat;
-            const status = result.duplicate
-              ? "Sudah Check-in"
-              : "Check-in Berhasil";
+            const status = result.duplicate ? "Sudah Check-in" : "Check-in Berhasil";
             const statusClass = result.duplicate ? "warning" : "success";
 
             showResult(
@@ -593,12 +689,12 @@
                 ${status}
               </span>
             `,
-              statusClass,
+              statusClass
             );
 
             addDebug(
               `Check-in ${result.duplicate ? "duplicate" : "success"} for ${guestName}`,
-              result.duplicate ? "warning" : "success",
+              result.duplicate ? "warning" : "success"
             );
 
             if (!result.duplicate) {
@@ -612,7 +708,7 @@
           addDebug("Validation error: " + error.message, "error");
           showResult(
             `❌ Error: ${error.message}<br><br><small>QR: ${decodedText.substring(0, 100)}</small>`,
-            "error",
+            "error"
           );
         }
 
@@ -657,7 +753,7 @@
               seat +
               ", token: " +
               (token ? token.substring(0, 4) + "..." : "none"),
-            "info",
+            "info"
           );
 
           return {
@@ -691,11 +787,11 @@
             ", token=" +
             token.substring(0, 4) +
             "...",
-          "info",
+          "info"
         );
         showResult(
           '<div class="loading"><div class="spinner"></div> Checking...</div>',
-          "loading",
+          "loading"
         );
 
         try {
@@ -709,7 +805,7 @@
           const result = await response.json();
           addDebug(
             "Manual API response: " + JSON.stringify(result),
-            result.success ? "success" : "error",
+            result.success ? "success" : "error"
           );
 
           if (result.success) {
@@ -744,8 +840,7 @@
           const data = await response.json();
 
           if (data.success && data.stats) {
-            document.getElementById("stat-total").textContent =
-              data.stats.total;
+            document.getElementById("stat-total").textContent = data.stats.total;
             document.getElementById("stat-checked").textContent =
               data.stats.checkedIn;
             document.getElementById("stat-remaining").textContent =
