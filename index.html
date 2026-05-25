@@ -358,7 +358,7 @@
       }
 
       .qr-box {
-        width: 220px; /* UBAH: 160 jadi 220 untuk QR lebih besar */
+        width: 220px;
         height: 220px;
         margin: 0 auto;
         border: 2px solid rgba(201, 168, 76, 0.4);
@@ -383,7 +383,6 @@
         border-radius: 8px;
       }
 
-      /* Container untuk QR Code dinamis */
       #qrcode {
         display: flex;
         align-items: center;
@@ -499,7 +498,7 @@
           height: 40px;
         }
         .qr-box {
-          width: 180px; /* UBAH: 140 jadi 180 untuk mobile */
+          width: 180px;
           height: 180px;
         }
       }
@@ -597,47 +596,117 @@
 
     <!-- ✅ Script Personalisasi + QR Code Dinamis -->
     <script>
-      // Konfigurasi - DIPERBAIKI
+      // Konfigurasi
       const CONFIG = {
         baseUrl: "https://marthynz.github.io/e-invitation",
         apiEndpoint:
           "https://script.google.com/macros/s/AKfycbw703PW01pw0ZjQbYKz7z0nZdMKkWquiPhMsoHD9k1HWnk2xTJls35t54pn9LX1iGfJvA/exec",
-        confirmationEndpoint: "&confirmed=true", // ✅ DIPERBAIKI: ? jadi &
-        qrSize: 200, // ✅ DIPERBAIKI: 140 jadi 200 (lebih besar)
+        confirmationEndpoint: "&confirmed=true",
+        qrSize: 200,
         qrColor: "#1b2a4a",
         qrBgColor: "#ffffff",
-        // Token mapping dari Google Sheet (harus sesuai dengan data di sheet)
-        tokenMap: {
-          marthynz: "a1b2c3d4e5",
-          jules: "f6g7h8i9j0",
-          jefry-liebertus: "k1l2m3n4o5",
-          // Tambahkan tamu lainnya di sini
-        },
+        // TokenMap akan diisi dari Google Sheet
+        tokenMap: {},
+        nameMap: {}, // Map untuk menyimpan nama lengkap
+        tokensLoaded: false,
+        tokensLoading: false,
       };
 
-      document.addEventListener("DOMContentLoaded", function () {
+      // Global variables
+      let globalSeatName = null;
+      let globalFormattedName = null;
+
+      document.addEventListener("DOMContentLoaded", async function () {
+        console.log("🚀 Invitation initialized");
+
+        // 1. Baca parameter seat dari URL
         const urlParams = new URLSearchParams(window.location.search);
-        const seatName = urlParams.get("seat");
-        const formattedName = seatName ? formatGuestName(seatName) : null;
+        globalSeatName = urlParams.get("seat");
 
-        personalizeInvitation(formattedName);
-        generateDynamicQR(seatName, formattedName);
+        // 2. Load tokens dari Google Sheet terlebih dahulu
+        await loadTokensFromSheet();
 
-        // Cek apakah ini halaman konfirmasi
+        // 3. Setelah tokens load, baru personalisasi
+        if (globalSeatName) {
+          // Cari nama dari nameMap
+          globalFormattedName =
+            CONFIG.nameMap[globalSeatName] || formatGuestName(globalSeatName);
+          personalizeInvitation(globalFormattedName);
+          generateDynamicQR(globalSeatName, globalFormattedName);
+        }
+
+        // 4. Handle konfirmasi jika ada parameter confirmed=true
         if (urlParams.get("confirmed") === "true") {
           handleConfirmation();
         }
       });
 
+      // ✅ FUNGSI BARU: Load tokenMap dan nameMap dari Google Sheet
+      async function loadTokensFromSheet() {
+        if (CONFIG.tokensLoaded || CONFIG.tokensLoading) return;
+
+        CONFIG.tokensLoading = true;
+        console.log("📡 Loading tokens from Google Sheet...");
+
+        // Tampilkan loading di QR box
+        const qrContainer = document.getElementById("qrcode");
+        if (qrContainer) {
+          qrContainer.innerHTML =
+            '<div class="qr-loading">⏳ Loading guest data...</div>';
+        }
+
+        try {
+          const response = await fetch(`${CONFIG.apiEndpoint}?action=getTokens`);
+          const result = await response.json();
+
+          console.log("📥 Tokens response:", result);
+
+          if (result.success && result.tokens) {
+            CONFIG.tokenMap = result.tokens;
+            CONFIG.nameMap = result.names || {}; // Simpan nama lengkap
+            CONFIG.tokensLoaded = true;
+            console.log(
+              `✅ Loaded ${result.count} tokens from sheet`,
+              result.names
+            );
+          } else {
+            throw new Error(result.message || "Failed to load tokens");
+          }
+        } catch (error) {
+          console.error("❌ Failed to load tokens:", error);
+
+          if (qrContainer) {
+            qrContainer.innerHTML =
+              '<span style="font-size:10px; color:#ff6b6b; text-align:center; padding:10px">' +
+              `❌ Gagal load data tamu<br><small>${error.message}</small><br><br>Hubungi panitia</span>`;
+          }
+        } finally {
+          CONFIG.tokensLoading = false;
+        }
+      }
+
+      // ✅ Format slug ke nama lengkap
+      // "jefry-liebertus" → "Jefry Liebertus"
+      // "jules-bulu" → "Jules Bulu"
       function formatGuestName(slug) {
         if (!slug) return "";
         return slug
           .split("-")
           .map(
-            (word) =>
-              word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+            (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
           )
           .join(" ");
+      }
+
+      // ✅ Convert nama lengkap ke slug
+      // "Jefry Liebertus" → "jefry-liebertus"
+      function nameToSlug(name) {
+        if (!name) return "";
+        return name
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, "-") // Ganti spasi dengan hyphen
+          .replace(/[^\w\-]/g, ""); // Hapus karakter spesial
       }
 
       function personalizeInvitation(name) {
@@ -664,7 +733,7 @@
         document.title = `Invitation for ${name} | Apple Tree Pre School Kupang`;
       }
 
-      // ✅ FUNGSI DIPERBAIKI
+      // ✅ FUNGS DIPERBAIKI: Generate QR Code
       function generateDynamicQR(seatName, formattedName) {
         const qrContainer = document.getElementById("qrcode");
 
@@ -675,25 +744,37 @@
           return;
         }
 
-        // Ambil token dari mapping
+        // Cek apakah tokens sudah load
+        if (!CONFIG.tokensLoaded) {
+          if (!CONFIG.tokensLoading) {
+            loadTokensFromSheet();
+          } else {
+            qrContainer.innerHTML =
+              '<div class="qr-loading">⏳ Loading guest data...</div>';
+            setTimeout(() => generateDynamicQR(seatName, formattedName), 1000);
+          }
+          return;
+        }
+
+        // Ambil token dari mapping yang sudah di-load dari sheet
         const token = CONFIG.tokenMap[seatName];
 
         if (!token) {
           qrContainer.innerHTML =
             '<span style="font-size:10px; color:#ff6b6b; text-align:center; padding:10px">' +
-            "Token tidak ditemukan<br>Hubungi panitia</span>";
+            `❌ Tamu "${formattedName}" tidak ditemukan<br><small>Seat: ${seatName}</small><br><br>Hubungi panitia</span>`;
           console.error(`Token tidak ditemukan untuk seat: ${seatName}`);
           return;
         }
 
-        // ✅ Buat URL konfirmasi yang BENAR (tanpa double ?)
+        // Buat URL konfirmasi yang BENAR
         const confirmationUrl = `${CONFIG.baseUrl}?seat=${encodeURIComponent(seatName)}&token=${encodeURIComponent(token)}${CONFIG.confirmationEndpoint}`;
 
         // Log untuk debug
         console.log("🔗 QR URL:", confirmationUrl);
-        console.log("Seat:", seatName);
-        console.log("Token:", token);
-        console.log("Formatted Name:", formattedName);
+        console.log("Seat (slug):", seatName);
+        console.log("Name (display):", formattedName);
+        console.log("Token:", token.substring(0, 4) + "...");
 
         qrContainer.innerHTML = "";
 
@@ -704,7 +785,7 @@
             height: CONFIG.qrSize,
             colorDark: CONFIG.qrColor,
             colorLight: CONFIG.qrBgColor,
-            correctLevel: QRCode.CorrectLevel.H, // High error correction
+            correctLevel: QRCode.CorrectLevel.H,
           });
 
           console.log(`✅ QR Code generated for: ${formattedName}`);
@@ -722,22 +803,19 @@
 
         if (!seatName || !token) {
           showErrorMessage(
-            "Link tidak lengkap. Pastikan URL berisi parameter seat dan token.",
+            "Link tidak lengkap. Pastikan URL berisi parameter seat dan token."
           );
           return;
         }
 
-        // Tampilkan loading
         showLoadingModal();
 
         try {
-          // Validasi ke Google Apps Script
           const response = await fetch(
-            `${CONFIG.apiEndpoint}?action=confirm&seat=${encodeURIComponent(seatName)}&token=${encodeURIComponent(token)}`,
+            `${CONFIG.apiEndpoint}?action=confirm&seat=${encodeURIComponent(seatName)}&token=${encodeURIComponent(token)}`
           );
 
           const result = await response.json();
-
           hideLoadingModal();
 
           if (result.success) {
@@ -746,7 +824,7 @@
             if (result.already_checked_in) {
               showAlreadyCheckedInModal(
                 result.guest_name || "Tamu",
-                result.checked_at,
+                result.checked_at
               );
             } else {
               showErrorMessage(result.message || "Token tidak valid");
@@ -759,6 +837,7 @@
         }
       }
 
+      // === MODAL FUNCTIONS ===
       function showLoadingModal() {
         const modal = document.createElement("div");
         modal.id = "loading-modal";
@@ -768,8 +847,7 @@
           <div style="font-size:48px;margin-bottom:20px;animation:spin 1s linear infinite">⏳</div>
           <div style="font-family:'Playfair Display';font-size:18px;">Memverifikasi...</div>
         </div>
-      </div>
-    `;
+      </div>`;
         document.body.appendChild(modal);
       }
 
@@ -795,8 +873,7 @@
           <p style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:20px;">Checked in: ${new Date(checkedAt).toLocaleString("id-ID")}</p>
           <button onclick="this.closest('div').remove()" style="margin-top:25px;padding:12px 32px;background:linear-gradient(135deg,#c9a84c 0%,#a67c2e 100%);border:none;border-radius:8px;color:#0f1a30;font-weight:600;font-size:14px;cursor:pointer;transition:transform 0.2s;">Tutup</button>
         </div>
-      </div>
-    `;
+      </div>`;
         document.body.appendChild(modal);
       }
 
@@ -814,8 +891,7 @@
           </div>
           <button onclick="this.closest('div').remove()" style="margin-top:20px;padding:12px 32px;background:rgba(201,168,76,0.2);border:1px solid #c9a84c;border-radius:8px;color:#e8d48b;font-weight:600;cursor:pointer;">Tutup</button>
         </div>
-      </div>
-    `;
+      </div>`;
         document.body.appendChild(modal);
       }
 
@@ -829,12 +905,11 @@
           <p style="font-size:14px;color:rgba(255,255,255,0.8);margin-bottom:25px;">${msg}</p>
           <button onclick="this.closest('div').remove();window.location.href='${CONFIG.baseUrl}'" style="padding:12px 32px;background:rgba(255,107,107,0.2);border:1px solid #ff6b6b;border-radius:8px;color:#ff6b6b;font-weight:600;cursor:pointer;">Kembali</button>
         </div>
-      </div>
-    `;
+      </div>`;
         document.body.appendChild(modal);
       }
 
-      // Tambahkan animasi CSS
+      // Animasi CSS
       const style = document.createElement("style");
       style.textContent = `
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
