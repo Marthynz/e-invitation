@@ -476,14 +476,17 @@
           let qrData = parseQRData(decodedText);
           log("Parsed QR Data:", qrData);
 
-          if (!qrData.seat || !qrData.token) {
+          if (!qrData.seat) {
             throw new Error(
-              `Invalid QR format. Missing: ${!qrData.seat ? "seat" : "token"}`,
+              `Invalid QR format. Missing: seat`,
             );
           }
 
-          // Call validation API
-          const validateUrl = `${API_URL}?action=validate&seat=${encodeURIComponent(qrData.seat)}&token=${encodeURIComponent(qrData.token)}&origin=${window.location.origin}`;
+          // Call validation API - only include token if present
+          let validateUrl = `${API_URL}?action=validate&seat=${encodeURIComponent(qrData.seat)}&origin=${window.location.origin}`;
+          if (qrData.token) {
+            validateUrl += `&token=${encodeURIComponent(qrData.token)}`;
+          }
 
           log("Calling API:", validateUrl);
 
